@@ -1,0 +1,360 @@
+// Prisma schema — Smart Educational Platform for Physics Academy
+// Persian physics konkur prep: video library, exams, smart analytics engine
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================ USERS & AUTH ============================
+
+model User {
+  id           String   @id @default(cuid())
+  phone        String   @unique // Iranian mobile "09xxxxxxxxx"
+  name         String
+  passwordHash String
+  role         Role     @default(STUDENT)
+  grade        Grade    @default(GRADE_12_PHYSICS)
+  avatarColor  String   @default("#0ea5a4") // teal
+  parentPhone  String?
+  isActive     Boolean  @default(true)
+  devices      Json     @default("[]") // array of {id, name, lastSeen}
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  examAttempts    ExamAttempt[]
+  videoViews      VideoView[]
+  errorNotebook   ErrorEntry[]
+  leitnerCards    LeitnerCard[]
+  surveys         ClassSurvey[]
+  children        ParentReport[]  @relation("ParentOf")
+  referralCode    String?  @unique
+  referredBy      String?  // referrer user id (text to avoid cycle)
+  subscriptions   Subscription[]
+
+  // teacher-scoped
+  taughtClasses   Class[]         @relation("ClassTeacher")
+  authoredQuestions Question[]     @relation("AuthoredBy")
+  approvedQuestions Question[]    @relation("ApprovedBy")
+  videoUploads    Video[]
+  questionAnswers QuestionAnswer[]
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  MANAGER
+}
+
+enum Grade {
+  GRADE_11_PHYSICS
+  GRADE_12_PHYSICS
+}
+
+// ============================ CURRICULUM ============================
+
+model Chapter {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String   // Persian chapter title
+  grade       Grade    @default(GRADE_12_PHYSICS)
+  order       Int
+  topics      Topic[]
+  videos      Video[]
+  questions   Question[]
+  exams       Exam[]
+  createdAt   DateTime @default(now())
+}
+
+model Topic {
+  id          String   @id @default(cuid())
+  chapterId   String
+  chapter     Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  title       String   // Persian topic title, e.g. "اصطکاک در سطح شیب‌دار"
+  slug        String
+  order       Int
+  questions   Question[]
+  videos      Video[]
+
+  @@unique([chapterId, slug])
+}
+
+// ============================ VIDEO LIBRARY ============================
+
+model Video {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  chapterId    String
+  chapter      Chapter  @relation(fields: [chapterId], references: [id])
+  topicId      String?
+  topic        Topic?   @relation(fields: [topicId], references: [id])
+  durationSec  Int
+  hlsUrl      String   // secure Iranian CDN URL (encrypted)
+  thumbnail    String?
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  watermarkText String? // typically the viewer's name+phone, applied at runtime
+  isPublished  Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  views        VideoView[]
+}
+
+model VideoView {
+  id           String   @id @default(cuid())
+  videoId      String
+  video        Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  watchSec     Int      @default(0)
+  completed    Boolean  @default(false)
+  lastPosition Int      @default(0) // seconds
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  @@unique([videoId, userId])
+}
+
+// ============================ EXAMS & QUESTIONS ============================
+
+enum ExamType {
+  TOPIC_QUIZ    // آزمونک موضوعی بعد از هر جلسه
+  CHAPTER_EXAM  // آزمون جامع فصل
+  KONKUR_SIM    // شبیه‌ساز کامل کنکور
+  REMEDIAL      // آزمون مجدد (پس از تجویز)
+}
+
+model Exam {
+  id            String   @id @default(cuid())
+  title         String
+  type          ExamType
+  chapterId     String?
+  chapter       Chapter? @relation(fields: [chapterId], references: [id])
+  grade         Grade    @default(GRADE_12_PHYSICS)
+  durationMin   Int      // کل دقیقه
+  questionCount Int
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  questions     ExamQuestion[]
+  attempts      ExamAttempt[]
+}
+
+// Many-to-many: a single question can appear in multiple exams (topic quiz + chapter exam + konkur sim)
+model ExamQuestion {
+  examId     String
+  questionId String
+  order      Int      @default(0)
+  exam       Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([examId, questionId])
+  @@index([questionId])
+}
+
+model Question {
+  id             String   @id @default(cuid())
+  chapterId      String
+  chapter        Chapter  @relation(fields: [chapterId], references: [id])
+  topicId        String
+  topic          Topic    @relation(fields: [topicId], references: [id])
+  stem           String   // Persian, may include math notation
+  optionA        String
+  optionB        String
+  optionC        String
+  optionD        String
+  correctOption  CorrectOption
+  difficulty     Difficulty @default(MEDIUM)
+  explanationUrl String?  // optional link to a video that explains this concept
+  authoredById   String
+  authoredBy     User     @relation("AuthoredBy", fields: [authoredById], references: [id])
+  approvedById   String?
+  approvedBy     User?    @relation("ApprovedBy", fields: [approvedById], references: [id])
+  approvalStatus ApprovalStatus @default(PENDING)
+  createdAt      DateTime @default(now())
+
+  exams          ExamQuestion[]
+  answers        QuestionAnswer[]
+}
+
+enum CorrectOption {
+  A
+  B
+  C
+  D
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ============================ EXAM ATTEMPTS & ANALYTICS ============================
+
+model ExamAttempt {
+  id            String   @id @default(cuid())
+  examId        String
+  exam          Exam     @relation(fields: [examId], references: [id])
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt     DateTime @default(now())
+  finishedAt    DateTime?
+  durationSec   Int      @default(0)
+  score         Float    @default(0) // 0..20 (konkur scale)
+  correctCount  Int      @default(0)
+  wrongCount    Int      @default(0)
+  blankCount    Int      @default(0)
+  isFinished    Boolean  @default(false)
+  // Diagnosis: list of weak topic ids (JSON array)
+  weakTopics    Json     @default("[]")
+  // Prescription: list of video ids recommended
+  prescription  Json     @default("[]")
+
+  answers       QuestionAnswer[]
+
+  @@index([userId, examId])
+}
+
+model QuestionAnswer {
+  id           String   @id @default(cuid())
+  attemptId    String
+  attempt      ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId   String
+  question     Question @relation(fields: [questionId], references: [id])
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  selected     CorrectOption? // null = blank
+  isCorrect    Boolean  @default(false)
+  timeSpentSec Int      @default(0) // response time for that question
+  createdAt    DateTime @default(now())
+
+  @@unique([attemptId, questionId])
+}
+
+// ============================ ERROR NOTEBOOK ============================
+
+model ErrorEntry {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId   String
+  // store key fields denormalized for quick rendering
+  stem         String
+  correctOption CorrectOption
+  selected     CorrectOption?
+  chapterTitle String
+  topicTitle   String
+  resolved     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, questionId])
+}
+
+// ============================ LEITNER BOX ============================
+
+model LeitnerCard {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  front        String   // formula or concept
+  back         String   // answer / explanation
+  box          Int      @default(1) // 1..7
+  nextReview   DateTime @default(now())
+  reviewCount  Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ============================ CLASS & SURVEYS ============================
+
+model Class {
+  id         String   @id @default(cuid())
+  name       String   // e.g. "کلاس کنکور فیزیک — شیفت صبح"
+  grade      Grade    @default(GRADE_12_PHYSICS)
+  teacherId  String
+  teacher    User     @relation("ClassTeacher", fields: [teacherId], references: [id])
+  studentIds Json     @default("[]") // array of user ids
+  schedule   String?  // human readable
+  createdAt  DateTime @default(now())
+
+  surveys    ClassSurvey[]
+}
+
+model ClassSurvey {
+  id         String   @id @default(cuid())
+  classId    String
+  class      Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson     String   // lesson title
+  confused   Boolean  @default(false) // true = "گنگ بود"
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@unique([classId, userId, lesson])
+}
+
+// ============================ SUBSCRIPTIONS & BILLING ============================
+
+model Subscription {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan       String   @default("annual_phase1") // پرداخت یک‌باره فاز اول
+  amount     Int      // toman
+  isPaid     Boolean  @default(true)
+  startDate  DateTime @default(now())
+  endDate    DateTime?
+  refCode    String?
+  createdAt  DateTime @default(now())
+}
+
+model ParentReport {
+  id         String   @id @default(cuid())
+  parentId   String
+  parent     User     @relation("ParentOf", fields: [parentId], references: [id])
+  childId    String
+  childName  String
+  weekStart  DateTime
+  summary    String   // Persian weekly summary
+  sentViaSms Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+// ============================ NOTIFICATIONS / REMINDERS ============================
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String?
+  scope      NotificationScope @default(USER)
+  title      String
+  body       String
+  type       NotificationType @default(INFO)
+  readIds    Json     @default("[]") // user ids who read
+  createdAt  DateTime @default(now())
+}
+
+enum NotificationScope {
+  USER
+  CLASS
+  ALL
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  REMINDER
+  ACHIEVEMENT
+}
