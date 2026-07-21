@@ -25,27 +25,31 @@ import {
   XCircle,
   ClipboardList,
   Sparkles,
+  Wand2,
+  Copy,
 } from 'lucide-react'
 import { StatCard } from '@/components/shared/StatCard'
 import { toFa, toFaNumber, relativeTime } from '@/lib/fa'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
+type HeatmapEntry = {
+  topicId: string
+  topicTitle: string
+  chapterTitle: string
+  correct: number
+  total: number
+  ratio: number
+  students: number
+}
+
 type Dashboard = {
   teacher: { id: string; name: string }
   classes: { id: string; name: string; schedule: string; studentCount: number }[]
-  heatmap: {
-    topicId: string
-    topicTitle: string
-    chapterTitle: string
-    correct: number
-    total: number
-    ratio: number
-    students: number
-  }[]
+  heatmap: HeatmapEntry[]
   summary: string
-  weakestTopics: typeof heatmap
-  strongTopics: typeof heatmap
+  weakestTopics: HeatmapEntry[]
+  strongTopics: HeatmapEntry[]
   avgScore: number
   pendingApprovals: number
   recentActivity: {
@@ -101,7 +105,7 @@ function TeacherHome({ onNavigate }: { onNavigate: (v: string) => void }) {
               <h1 className="text-2xl lg:text-3xl font-bold">سلام {data.teacher.name.split(' ').slice(0, 2).join(' ')} 👋</h1>
               <p className="text-muted-foreground mt-2">
                 <span className="font-bold text-amber-600">{toFa(data.inactiveStudents)} دانش‌آموز غیرفعال</span> در کلاس‌های شما هستند.
-                میانگین نمره کلاس: <span className="font-bold text-teal-600">{toFaNumber(data.avgScore)}</span> از ۲۰.
+                میانگین نمره کلاس: <span className="font-bold text-primary">{toFaNumber(data.avgScore)}</span> از ۲۰.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button onClick={() => onNavigate('questions')} variant="outline" className="gap-2">
@@ -117,7 +121,7 @@ function TeacherHome({ onNavigate }: { onNavigate: (v: string) => void }) {
             </div>
             <div className="text-center md:text-right">
               <div className="text-sm text-muted-foreground">تعداد کلاس‌ها</div>
-              <div className="text-4xl font-bold text-teal-600">{toFa(data.classes.length)}</div>
+              <div className="text-4xl font-bold text-primary">{toFa(data.classes.length)}</div>
               <div className="text-xs text-muted-foreground">{toFa(data.totalStudents)} دانش‌آموز</div>
             </div>
           </div>
@@ -150,7 +154,7 @@ function TeacherHome({ onNavigate }: { onNavigate: (v: string) => void }) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-teal-600" />
+            <Brain className="h-5 w-5 text-primary" />
             نقشه حرارتی ضعف کلاس
           </CardTitle>
           <CardDescription>مباحثی که کلاس در آن‌ها مشکل دارد — برای مرور در جلسه بعد</CardDescription>
@@ -252,10 +256,76 @@ function TeacherHome({ onNavigate }: { onNavigate: (v: string) => void }) {
 }
 
 // ============ Questions bank panel ============
+type Variant = {
+  stem: string
+  optionA: string
+  optionB: string
+  optionC: string
+  optionD: string
+  correctOption: 'A' | 'B' | 'C' | 'D'
+}
+
 function QuestionsPanel({ onBack }: { onBack: () => void }) {
   const [questions, setQuestions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL')
+  const [variantsFor, setVariantsFor] = useState<string | null>(null)
+  const [variants, setVariants] = useState<Variant[]>([])
+  const [generating, setGenerating] = useState(false)
+  const [savingIdx, setSavingIdx] = useState<number | null>(null)
+
+  async function generateVariants(q: any) {
+    setVariantsFor(q.id)
+    setVariants([])
+    setGenerating(true)
+    try {
+      const res = await fetch('/api/ai/variants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionId: q.id, count: 5 }),
+      })
+      const d = await res.json()
+      if (!res.ok) {
+        toast.error(d.error || 'تولید نسخه ناموفق بود')
+        setVariantsFor(null)
+        return
+      }
+      setVariants(d.variants)
+      if (d.demo) toast.info('نسخه‌های نمایشی — با اتصال کلید AI، نسخه‌های واقعی با اعداد جدید ساخته می‌شود')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  async function saveVariant(q: any, v: Variant, idx: number) {
+    setSavingIdx(idx)
+    try {
+      const res = await fetch('/api/teacher/questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chapterId: q.chapterId,
+          topicId: q.topicId,
+          stem: v.stem,
+          optionA: v.optionA,
+          optionB: v.optionB,
+          optionC: v.optionC,
+          optionD: v.optionD,
+          correctOption: v.correctOption,
+          difficulty: q.difficulty,
+        }),
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        toast.error(d.error || 'خطا در ذخیره')
+        return
+      }
+      toast.success('نسخه به بانک سؤالات افزوده شد (در انتظار تأیید)')
+      setVariants((prev) => prev.filter((_, i) => i !== idx))
+    } finally {
+      setSavingIdx(null)
+    }
+  }
 
   useEffect(() => {
     fetch(`/api/teacher/questions?status=${filter}`)
@@ -343,10 +413,52 @@ function QuestionsPanel({ onBack }: { onBack: () => void }) {
                       <XCircle className="h-3 w-3" /> رد
                     </Button>
                   )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => generateVariants(q)}
+                    disabled={generating && variantsFor === q.id}
+                    className="gap-1 text-primary"
+                  >
+                    <Wand2 className="h-3 w-3" />
+                    {generating && variantsFor === q.id ? 'در حال تولید…' : 'تولید ۵ نسخه با AI'}
+                  </Button>
                   <Button size="sm" variant="ghost" onClick={() => remove(q.id)} className="gap-1 text-muted-foreground mr-auto">
                     حذف
                   </Button>
                 </div>
+
+                {/* AI-generated variants for this question */}
+                {variantsFor === q.id && variants.length > 0 && (
+                  <div className="mt-3 pt-3 border-t space-y-2">
+                    <div className="text-xs font-bold text-primary flex items-center gap-1">
+                      <Copy className="h-3 w-3" /> نسخه‌های تولیدشده — هرکدام را خواستید ذخیره کنید
+                    </div>
+                    {variants.map((v, idx) => (
+                      <div key={idx} className="rounded-lg border bg-muted/30 p-3">
+                        <div className="text-sm">{v.stem}</div>
+                        <div className="grid grid-cols-2 gap-1 mt-2 text-xs">
+                          {(['A', 'B', 'C', 'D'] as const).map((o) => (
+                            <div key={o} className={cn('flex gap-1', v.correctOption === o && 'text-emerald-600 font-bold')}>
+                              <span>{toFa(o)}.</span>
+                              <span>{v[`option${o}` as keyof Variant]}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => saveVariant(q, v, idx)}
+                          disabled={savingIdx === idx}
+                          className="mt-2 gap-1 text-emerald-700"
+                        >
+                          <PlusCircle className="h-3 w-3" />
+                          {savingIdx === idx ? 'در حال ذخیره…' : 'افزودن به بانک'}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -370,12 +482,39 @@ function AddQuestionPanel({ onBack }: { onBack: () => void }) {
   const [correct, setCorrect] = useState<'A' | 'B' | 'C' | 'D'>('A')
   const [difficulty, setDifficulty] = useState('MEDIUM')
   const [submitting, setSubmitting] = useState(false)
+  const [tagging, setTagging] = useState(false)
 
   useEffect(() => {
     fetch('/api/chapters').then((r) => r.json()).then((d) => setChapters(d.chapters || []))
   }, [])
 
   const currentChapter = chapters.find((c) => c.id === chapterId)
+
+  async function autoTag() {
+    if (!stem.trim()) {
+      toast.error('اول متن سؤال را بنویسید.')
+      return
+    }
+    setTagging(true)
+    try {
+      const res = await fetch('/api/ai/tag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stem, options: opts }),
+      })
+      const d = await res.json()
+      if (!res.ok) {
+        toast.error(d.error || 'تشخیص خودکار ناموفق بود')
+        return
+      }
+      setChapterId(d.chapterId)
+      setTopicId(d.topicId)
+      setDifficulty(d.difficulty)
+      toast.success(d.demo ? 'تگ نمایشی اعمال شد (کلید AI وصل نیست)' : 'فصل، مبحث و سختی به‌صورت خودکار تعیین شد — بررسی و تأیید کنید')
+    } finally {
+      setTagging(false)
+    }
+  }
 
   async function submit() {
     if (!chapterId || !topicId || !stem || !opts.A || !opts.B || !opts.C || !opts.D) {
@@ -410,7 +549,7 @@ function AddQuestionPanel({ onBack }: { onBack: () => void }) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <PlusCircle className="h-6 w-6 text-teal-600" />
+            <PlusCircle className="h-6 w-6 text-primary" />
             افزودن سؤال جدید
           </h1>
           <p className="text-muted-foreground text-sm mt-1">اضافه کردن سؤال فقط با دو حرکت: کپی متن + بارگذاری عکس شکل</p>
@@ -441,8 +580,14 @@ function AddQuestionPanel({ onBack }: { onBack: () => void }) {
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label>متن سؤال</Label>
-            <Textarea value={stem} onChange={(e) => setStem(e.target.value)} rows={4} placeholder="متن سؤال را اینجا بنویسید…" />
+            <div className="flex items-center justify-between">
+              <Label>متن سؤال</Label>
+              <Button type="button" size="sm" variant="outline" onClick={autoTag} disabled={tagging} className="gap-1 text-primary">
+                <Wand2 className="h-3.5 w-3.5" />
+                {tagging ? 'در حال تشخیص…' : 'تگ خودکار با AI'}
+              </Button>
+            </div>
+            <Textarea value={stem} onChange={(e) => setStem(e.target.value)} rows={4} placeholder="متن سؤال را اینجا بنویسید… سپس «تگ خودکار» بزنید تا فصل و مبحث و سختی خودش پر شود" />
           </div>
           <div className="space-y-1.5">
             <Label>گزینه‌ها</Label>
