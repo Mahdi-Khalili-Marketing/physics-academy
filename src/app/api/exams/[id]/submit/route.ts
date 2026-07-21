@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
+import {
+  diagnoseWeakTopics,
+  prescribeForAttempt,
+  REMEDIAL_PASS_RATIO,
+  type TopicStat,
+} from '@/lib/prescription'
 
 // POST /api/exams/[id]/submit
 // body: { attemptId, answers: [{ questionId, selected: 'A'|'B'|'C'|'D'|null, timeSpentSec }] }
@@ -47,7 +53,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   let correctCount = 0
   let wrongCount = 0
   let blankCount = 0
-  const wrongByTopic: Record<string, { topicId: string; topicTitle: string; wrong: number; total: number }> = {}
+  const statsByTopic: Record<string, TopicStat> = {}
   const wrongAnswersToSave: {
     questionId: string
     stem: string
@@ -85,16 +91,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       })
     }
 
-    // diagnosis aggregation by topic
-    const topic = await db.topic.findUnique({ where: { id: q.topicId } })
+    // diagnosis aggregation by topic (blanks tracked separately — skipping is weakness too)
+    const topic = q.topic
     const topicKey = q.topicId
-    if (!wrongByTopic[topicKey]) {
-      wrongByTopic[topicKey] = { topicId: topicKey, topicTitle: topic?.title || '—', wrong: 0, total: 0 }
+    if (!statsByTopic[topicKey]) {
+      statsByTopic[topicKey] = { topicId: topicKey, topicTitle: topic?.title || '—', wrong: 0, blank: 0, total: 0 }
     }
-    wrongByTopic[topicKey].total++
-    if (!isCorrect && ans.selected !== null) {
-      wrongByTopic[topicKey].wrong++
-    }
+    statsByTopic[topicKey].total++
+    if (ans.selected === null) statsByTopic[topicKey].blank++
+    else if (!isCorrect) statsByTopic[topicKey].wrong++
 
     // wrong-answer notebook entry
     if (!isCorrect && ans.selected !== null) {
@@ -109,22 +114,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
   }
 
-  // 2) DIAGNOSIS — weak topics are those with wrong rate >= 50%
-  const weakTopics = Object.values(wrongByTopic)
-    .filter((t) => t.total >= 2 && t.wrong / t.total >= 0.5)
-    .sort((a, b) => b.wrong / b.total - a.wrong / a.total)
-    .map((t) => ({ topicId: t.topicId, topicTitle: t.topicTitle, wrong: t.wrong, total: t.total }))
-
-  // 3) PRESCRIPTION — for each weak topic, link to the most relevant published video
-  const prescription: { topicId: string; topicTitle: string; videoId: string; videoTitle: string }[] = []
-  for (const wt of weakTopics) {
-    const v = await db.video.findFirst({
-      where: { topicId: wt.topicId, isPublished: true },
-    })
-    if (v) {
-      prescription.push({ topicId: wt.topicId, topicTitle: wt.topicTitle, videoId: v.id, videoTitle: v.title })
-    }
-  }
+  // 2) DIAGNOSIS — weighted weak-topic detection (wrong + partial weight for blanks)
+  const diagnoses = diagnoseWeakTopics(Object.values(statsByTopic))
+  const weakTopics = diagnoses.map((d) => ({
+    topicId: d.topicId,
+    topicTitle: d.topicTitle,
+    wrong: d.wrong,
+    blank: d.blank,
+    total: d.total,
+  }))
 
   // 4) Update error notebook (upsert per question)
   for (const w of wrongAnswersToSave) {
@@ -155,6 +153,41 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const rawScore = total > 0 ? (correctCount - wrongCount * 0.25) * (20 / total) : 0
   const finalScore = Math.max(0, Number(rawScore.toFixed(2)))
 
+  // 6) PRESCRIPTION — persist trackable prescriptions (skip remedial quizzes:
+  //    they verify recovery, they don't open new prescriptions)
+  let prescriptions: Awaited<ReturnType<typeof prescribeForAttempt>> = []
+  if (exam.type !== 'REMEDIAL') {
+    prescriptions = await prescribeForAttempt(user.id, attempt.id, diagnoses)
+  }
+  const prescription = prescriptions
+    .filter((p) => p.videoId)
+    .map((p) => ({
+      prescriptionId: p.id,
+      topicId: p.topicId,
+      topicTitle: p.topicTitle,
+      videoId: p.videoId as string,
+      videoTitle: p.videoTitle as string,
+      reason: p.reason,
+    }))
+
+  // 7) REMEDIAL RECOVERY — if this exam is a remedial quiz tied to a
+  //    prescription, a pass marks the weakness as recovered
+  let remedial: { prescriptionId: string; passed: boolean; ratio: number } | null = null
+  if (exam.type === 'REMEDIAL') {
+    const p = await db.prescription.findUnique({ where: { remedialExamId: exam.id } })
+    if (p && p.userId === user.id && p.status !== 'RECOVERED') {
+      const ratio = total > 0 ? correctCount / total : 0
+      const passed = ratio >= REMEDIAL_PASS_RATIO
+      if (passed) {
+        await db.prescription.update({
+          where: { id: p.id },
+          data: { status: 'RECOVERED', recoveredAt: new Date() },
+        })
+      }
+      remedial = { prescriptionId: p.id, passed, ratio: Number(ratio.toFixed(2)) }
+    }
+  }
+
   const durationSec = Math.floor((Date.now() - attempt.startedAt.getTime()) / 1000)
   const updated = await db.examAttempt.update({
     where: { id: attempt.id },
@@ -182,5 +215,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     },
     diagnosis: weakTopics,
     prescription,
+    remedial,
   })
 }

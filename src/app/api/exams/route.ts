@@ -15,7 +15,8 @@ export async function GET(req: NextRequest) {
     where: {
       isActive: true,
       grade: user.grade,
-      ...(type ? { type: type as any } : {}),
+      // remedial quizzes are personal (tied to a prescription) — never listed publicly
+      ...(type ? { type: type as any } : { type: { not: 'REMEDIAL' } }),
       ...(chapterId ? { chapterId } : {}),
     },
     orderBy: { createdAt: 'desc' },

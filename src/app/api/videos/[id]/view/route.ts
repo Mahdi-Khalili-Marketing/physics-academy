@@ -24,5 +24,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       completed,
     },
   })
+  // Prescription loop: completing a prescribed video moves PENDING → WATCHED
+  if (completed) {
+    await db.prescription.updateMany({
+      where: { userId: user.id, videoId: id, status: 'PENDING' },
+      data: { status: 'WATCHED', watchedAt: new Date() },
+    })
+  }
+
   return NextResponse.json({ ok: true, view })
 }

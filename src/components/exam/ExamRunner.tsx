@@ -80,11 +80,12 @@ type SubmitResult = {
     blankCount: number
     durationSec: number
   }
-  diagnosis: { topicId: string; topicTitle: string; wrong: number; total: number }[]
-  prescription: { topicId: string; topicTitle: string; videoId: string; videoTitle: string }[]
+  diagnosis: { topicId: string; topicTitle: string; wrong: number; blank: number; total: number }[]
+  prescription: { prescriptionId: string; topicId: string; topicTitle: string; videoId: string; videoTitle: string; reason: string }[]
+  remedial: { prescriptionId: string; passed: boolean; ratio: number } | null
 }
 
-export function ExamRunner({ examId, onExit, onViewLibrary }: { examId: string; onExit: () => void; onViewLibrary: (videoId?: string) => void }) {
+export function ExamRunner({ examId, onExit, onViewLibrary, onOpenExam }: { examId: string; onExit: () => void; onViewLibrary: (videoId?: string) => void; onOpenExam?: (id: string) => void }) {
   const [exam, setExam] = useState<ExamData['exam'] | null>(null)
   const [loading, setLoading] = useState(true)
   const [started, setStarted] = useState(false)
@@ -230,7 +231,7 @@ export function ExamRunner({ examId, onExit, onViewLibrary }: { examId: string; 
 
   // ============ RESULT VIEW ============
   if (result) {
-    return <ExamResult result={result} exam={exam} onExit={onExit} onViewLibrary={onViewLibrary} />
+    return <ExamResult result={result} exam={exam} onExit={onExit} onViewLibrary={onViewLibrary} onOpenExam={onOpenExam} />
   }
 
   // ============ PRE-START VIEW ============
@@ -246,7 +247,7 @@ export function ExamRunner({ examId, onExit, onViewLibrary }: { examId: string; 
           <CardContent className="space-y-6">
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="rounded-lg border p-4">
-                <Target className="h-5 w-5 mx-auto text-teal-600 mb-1" />
+                <Target className="h-5 w-5 mx-auto text-primary mb-1" />
                 <div className="text-2xl font-bold">{toFa(exam.questions.length)}</div>
                 <div className="text-xs text-muted-foreground">سؤال</div>
               </div>
@@ -333,13 +334,13 @@ export function ExamRunner({ examId, onExit, onViewLibrary }: { examId: string; 
                     key={opt}
                     htmlFor={`q-${q.id}-${opt}`}
                     className={cn(
-                      'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:border-teal-500/50 hover:bg-teal-500/5',
-                      selected && 'border-teal-500 bg-teal-500/10',
+                      'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:border-primary/50 hover:bg-primary/5',
+                      selected && 'border-primary bg-primary/10',
                     )}
                   >
                     <RadioGroupItem value={opt} id={`q-${q.id}-${opt}`} className="mt-1" />
                     <div className="flex-1">
-                      <span className="text-xs font-bold text-teal-600 ml-2">{opt}.</span>
+                      <span className="text-xs font-bold text-primary ml-2">{opt}.</span>
                       <span>{text}</span>
                     </div>
                   </Label>
@@ -390,8 +391,8 @@ export function ExamRunner({ examId, onExit, onViewLibrary }: { examId: string; 
                     onClick={() => { setCurrentIdx(i); questionStartRef.current = Date.now() }}
                     className={cn(
                       'aspect-square rounded-md text-sm font-medium border transition-all',
-                      isCurrent && 'ring-2 ring-teal-500',
-                      isAnswered ? 'bg-teal-500/15 border-teal-500/40 text-teal-700' : 'bg-muted border-transparent',
+                      isCurrent && 'ring-2 ring-primary',
+                      isAnswered ? 'bg-primary/15 border-primary/40 text-primary' : 'bg-muted border-transparent',
                     )}
                   >
                     {toFa(i + 1)}
@@ -416,9 +417,19 @@ function difficultyLabel(d: string) {
 }
 
 // ============ EXAM RESULT VIEW ============
-function ExamResult({ result, exam, onExit, onViewLibrary }: { result: SubmitResult; exam: ExamData['exam']; onExit: () => void; onViewLibrary: (videoId?: string) => void }) {
-  const { attempt, diagnosis, prescription } = result
+function ExamResult({ result, exam, onExit, onViewLibrary, onOpenExam }: { result: SubmitResult; exam: ExamData['exam']; onExit: () => void; onViewLibrary: (videoId?: string) => void; onOpenExam?: (id: string) => void }) {
+  const { attempt, diagnosis, prescription, remedial } = result
   const scoreColor = attempt.score >= 14 ? 'text-emerald-600' : attempt.score >= 10 ? 'text-amber-600' : 'text-red-600'
+
+  async function startRemedial(prescriptionId: string) {
+    const res = await fetch(`/api/student/prescriptions/${prescriptionId}/remedial`, { method: 'POST' })
+    const data = await res.json()
+    if (!res.ok) {
+      toast.error(data.error || 'خطا در ساخت آزمون مجدد')
+      return
+    }
+    if (onOpenExam) onOpenExam(data.examId)
+  }
 
   return (
     <div className="max-w-3xl mx-auto page-enter space-y-6">
@@ -435,6 +446,34 @@ function ExamResult({ result, exam, onExit, onViewLibrary }: { result: SubmitRes
           </div>
         </CardContent>
       </Card>
+
+      {/* Remedial outcome — closes (or continues) the prescription loop */}
+      {remedial && (
+        <div
+          className={cn(
+            'rounded-lg border p-4 flex items-start gap-3',
+            remedial.passed
+              ? 'bg-emerald-500/10 border-emerald-500/30'
+              : 'bg-amber-500/10 border-amber-500/30',
+          )}
+        >
+          {remedial.passed ? (
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+          ) : (
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          )}
+          <div>
+            <div className={cn('font-bold', remedial.passed ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300')}>
+              {remedial.passed ? 'ضعف برطرف شد! 🎉' : 'هنوز به تسلط نرسیده‌ای'}
+            </div>
+            <div className="text-sm text-muted-foreground mt-1">
+              {remedial.passed
+                ? 'این مبحث در نسخهٔ تو «برطرف‌شده» ثبت شد. همین‌طور ادامه بده.'
+                : `دقت این آزمون ${toFa(Math.round(remedial.ratio * 100))}٪ بود (حد قبولی ${toFa(70)}٪). ویدیوی تجویزشده را دوباره ببین و مجدد تلاش کن.`}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Diagnosis */}
       <Card>
@@ -460,7 +499,7 @@ function ExamResult({ result, exam, onExit, onViewLibrary }: { result: SubmitRes
                     <div className="flex-1">
                       <div className="font-medium">{d.topicTitle}</div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        {toFa(d.wrong)} غلط از {toFa(d.total)} پاسخ
+                        {toFa(d.wrong)} غلط{d.blank > 0 ? ` و ${toFa(d.blank)} بی‌پاسخ` : ''} از {toFa(d.total)} سؤال
                       </div>
                     </div>
                     <div className="text-left">
@@ -480,7 +519,7 @@ function ExamResult({ result, exam, onExit, onViewLibrary }: { result: SubmitRes
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-teal-600" />
+              <Target className="h-5 w-5 text-primary" />
               تجویز — مسیر رفع ضعف
             </CardTitle>
             <CardDescription>برای رفع هر ضعف، درس مرتبط را ببینید</CardDescription>
@@ -488,14 +527,21 @@ function ExamResult({ result, exam, onExit, onViewLibrary }: { result: SubmitRes
           <CardContent className="space-y-2">
             {prescription.map((p) => (
               <div key={p.topicId} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50">
-                <BookOpen className="h-5 w-5 text-teal-600 shrink-0" />
+                <BookOpen className="h-5 w-5 text-primary shrink-0" />
                 <div className="flex-1">
                   <div className="font-medium text-sm">{p.videoTitle}</div>
-                  <div className="text-xs text-muted-foreground">برای رفع ضعف در: {p.topicTitle}</div>
+                  <div className="text-xs text-muted-foreground">{p.reason || `برای رفع ضعف در: ${p.topicTitle}`}</div>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => onViewLibrary(p.videoId)} className="gap-1">
-                  مشاهده <ChevronLeft className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-2 shrink-0">
+                  <Button size="sm" variant="outline" onClick={() => onViewLibrary(p.videoId)} className="gap-1">
+                    <PlayCircle className="h-4 w-4" /> مشاهده
+                  </Button>
+                  {onOpenExam && (
+                    <Button size="sm" variant="ghost" onClick={() => startRemedial(p.prescriptionId)} className="gap-1">
+                      <RefreshCcw className="h-4 w-4" /> آزمون مجدد
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </CardContent>
@@ -503,10 +549,10 @@ function ExamResult({ result, exam, onExit, onViewLibrary }: { result: SubmitRes
       )}
 
       {/* Loop hint */}
-      <div className="rounded-lg bg-teal-500/10 border border-teal-500/30 p-4 text-sm flex items-start gap-3">
-        <RefreshCcw className="h-5 w-5 text-teal-600 shrink-0 mt-0.5" />
+      <div className="rounded-lg bg-primary/10 border border-primary/30 p-4 text-sm flex items-start gap-3">
+        <RefreshCcw className="h-5 w-5 text-primary shrink-0 mt-0.5" />
         <div>
-          <div className="font-bold text-teal-700 dark:text-teal-300">چرخه تسلط</div>
+          <div className="font-bold text-primary">چرخه تسلط</div>
           <div className="text-muted-foreground mt-1">
             پس از دیدن ویدیوهای تجویزشده، دوباره این آزمون را بدهید تا از رفع ضعف مطمئن شوید.
             این چرخه تا رسیدن به تسلط تکرار می‌شود.

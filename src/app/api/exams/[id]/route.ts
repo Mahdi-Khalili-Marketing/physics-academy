@@ -27,6 +27,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!exam.isActive || exam.grade !== user.grade) {
     return NextResponse.json({ error: 'دسترسی غیرمجاز' }, { status: 403 })
   }
+  if (exam.type === 'REMEDIAL') {
+    const owner = await db.prescription.findUnique({ where: { remedialExamId: exam.id } })
+    if (owner?.userId !== user.id) {
+      return NextResponse.json({ error: 'دسترسی غیرمجاز' }, { status: 403 })
+    }
+  }
   return NextResponse.json({
     exam: {
       ...exam,

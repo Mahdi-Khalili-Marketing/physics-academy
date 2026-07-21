@@ -36,6 +36,7 @@ import {
 } from 'lucide-react'
 import { StatCard } from '@/components/shared/StatCard'
 import { MasteryDot } from '@/components/shared/MasteryDot'
+import { PrescriptionPanel } from '@/components/student/PrescriptionPanel'
 import { toFa, toFaNumber, relativeTime, formatDuration } from '@/lib/fa'
 import { toast } from 'sonner'
 
@@ -79,7 +80,7 @@ type Dashboard = {
   notifications: { id: string; title: string; body: string; type: string; createdAt: string }[]
 }
 
-export function StudentDashboard({ onOpenExam, onOpenLibrary }: { onOpenExam: (id?: string) => void; onOpenLibrary: () => void }) {
+export function StudentDashboard({ onOpenExam, onOpenLibrary, onOpenVideo }: { onOpenExam: (id?: string) => void; onOpenLibrary: () => void; onOpenVideo: (videoId: string) => void }) {
   const [data, setData] = useState<Dashboard | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -92,10 +93,17 @@ export function StudentDashboard({ onOpenExam, onOpenLibrary }: { onOpenExam: (i
 
   if (loading || !data) {
     return (
-      <div className="grid lg:grid-cols-3 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-32" />
-        ))}
+      <div className="space-y-6">
+        <Skeleton className="h-40 rounded-xl" />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-28 rounded-xl" />
+          ))}
+        </div>
+        <div className="grid lg:grid-cols-2 gap-4">
+          <Skeleton className="h-72 rounded-xl" />
+          <Skeleton className="h-72 rounded-xl" />
+        </div>
       </div>
     )
   }
@@ -118,8 +126,8 @@ export function StudentDashboard({ onOpenExam, onOpenLibrary }: { onOpenExam: (i
                 سلام {data.user.name.split(' ')[0]} 👋
               </h1>
               <p className="text-muted-foreground mt-2">
-                امروز <span className="font-bold text-teal-600">{toFa(data.stats.leitnerDue)} کارت لایتنر</span> برای مرور داری
-                و <span className="font-bold text-amber-600">{toFa(data.stats.errorsUnresolved)} اشتباه</span> ثبت‌نشده در دفتر اشتباهات.
+                امروز <span className="font-bold text-primary">{toFa(data.stats.leitnerDue)} کارت لایتنر</span> برای مرور داری
+                و <span className="font-bold text-amber-600 dark:text-amber-400">{toFa(data.stats.errorsUnresolved)} اشتباه</span> ثبت‌نشده در دفتر اشتباهات.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button onClick={() => onOpenExam()} className="gap-2">
@@ -132,12 +140,15 @@ export function StudentDashboard({ onOpenExam, onOpenLibrary }: { onOpenExam: (i
             </div>
             <div className="text-center md:text-right">
               <div className="text-sm text-muted-foreground">میانگین نمره</div>
-              <div className="text-4xl font-bold text-teal-600">{toFaNumber(data.stats.avgScore)}</div>
+              <div className="text-4xl font-bold text-primary stat-num">{toFaNumber(data.stats.avgScore)}</div>
               <div className="text-xs text-muted-foreground">از ۲۰ · {toFa(data.stats.totalAttempts)} آزمون</div>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Prescription loop — the "doctor" view */}
+      <PrescriptionPanel onOpenVideo={onOpenVideo} onOpenExam={(id) => onOpenExam(id)} />
 
       {/* Stats row */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -176,7 +187,7 @@ export function StudentDashboard({ onOpenExam, onOpenLibrary }: { onOpenExam: (i
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-teal-600" />
+              <Brain className="h-5 w-5 text-primary" />
               نقشه تسلط فصل‌به‌فصل
             </CardTitle>
             <CardDescription>وضعیت هر فصل با یک نگاه</CardDescription>
@@ -191,9 +202,9 @@ export function StudentDashboard({ onOpenExam, onOpenLibrary }: { onOpenExam: (i
         <CardContent>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {data.mastery.map((m) => (
-              <div
+              <button
                 key={m.chapterId}
-                className={`rounded-lg border p-3 hover-lift cursor-pointer ${
+                className={`text-right rounded-lg border p-3 hover-lift cursor-pointer press-scale ${
                   m.level === 'green' ? 'border-emerald-500/40 bg-emerald-500/5'
                   : m.level === 'yellow' ? 'border-amber-500/40 bg-amber-500/5'
                   : m.level === 'red' ? 'border-red-500/40 bg-red-500/5 cell-red'
@@ -210,11 +221,11 @@ export function StudentDashboard({ onOpenExam, onOpenLibrary }: { onOpenExam: (i
                 </div>
                 {m.avgScore !== null && (
                   <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>میانگین: <span className="font-bold text-foreground">{toFaNumber(m.avgScore)}</span></span>
+                    <span>میانگین: <span className="font-bold text-foreground stat-num">{toFaNumber(m.avgScore)}</span></span>
                     <span>{toFa(m.attemptsCount)} آزمون</span>
                   </div>
                 )}
-              </div>
+              </button>
             ))}
           </div>
         </CardContent>
@@ -226,7 +237,7 @@ export function StudentDashboard({ onOpenExam, onOpenLibrary }: { onOpenExam: (i
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-teal-600" />
+              <TrendingUp className="h-5 w-5 text-primary" />
               روند پیشرفت در طول زمان
             </CardTitle>
             <CardDescription>نمره آزمون‌های اخیر (از ۲۰)</CardDescription>
@@ -262,7 +273,7 @@ export function StudentDashboard({ onOpenExam, onOpenLibrary }: { onOpenExam: (i
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-teal-600" />
+              <Zap className="h-5 w-5 text-primary" />
               نمودار سرعت در برابر دقت
             </CardTitle>
             <CardDescription>هر نقطه یک آزمون است — هدف: پایین‌راست (سریع و دقیق)</CardDescription>
@@ -343,7 +354,7 @@ export function StudentDashboard({ onOpenExam, onOpenLibrary }: { onOpenExam: (i
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-teal-600" />
+                <BookOpen className="h-5 w-5 text-primary" />
                 آزمون‌های اخیر
               </CardTitle>
               <CardDescription>آخرین فعالیت‌های شما</CardDescription>

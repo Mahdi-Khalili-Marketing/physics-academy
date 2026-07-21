@@ -42,6 +42,7 @@ model User {
   approvedQuestions Question[]    @relation("ApprovedBy")
   videoUploads    Video[]
   questionAnswers QuestionAnswer[]
+  prescriptions   Prescription[]
 }
 
 enum Role {
@@ -79,6 +80,7 @@ model Topic {
   order       Int
   questions   Question[]
   videos      Video[]
+  prescriptions Prescription[]
 
   @@unique([chapterId, slug])
 }
@@ -103,6 +105,7 @@ model Video {
   createdAt    DateTime @default(now())
 
   views        VideoView[]
+  prescriptions Prescription[]
 }
 
 model VideoView {
@@ -143,6 +146,7 @@ model Exam {
 
   questions     ExamQuestion[]
   attempts      ExamAttempt[]
+  remedialFor   Prescription?  @relation("RemedialExam")
 }
 
 // Many-to-many: a single question can appear in multiple exams (topic quiz + chapter exam + konkur sim)
@@ -223,8 +227,45 @@ model ExamAttempt {
   prescription  Json     @default("[]")
 
   answers       QuestionAnswer[]
+  prescriptions Prescription[]
 
   @@index([userId, examId])
+}
+
+// ============================ PRESCRIPTION ENGINE ============================
+// The "doctor" loop: diagnose weak topic → prescribe a video → student watches
+// (WATCHED) → passes a remedial quiz on that topic (RECOVERED).
+
+enum PrescriptionStatus {
+  PENDING   // prescribed, video not yet watched
+  WATCHED   // video completed, remedial quiz not yet passed
+  RECOVERED // remedial quiz passed — weakness resolved
+}
+
+model Prescription {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attemptId      String
+  attempt        ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  topicId        String
+  topic          Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  videoId        String?
+  video          Video?   @relation(fields: [videoId], references: [id])
+  remedialExamId String?  @unique
+  remedialExam   Exam?    @relation("RemedialExam", fields: [remedialExamId], references: [id])
+  reason         String   // Persian diagnosis, e.g. "۳ غلط و ۱ بی‌پاسخ از ۵ سؤال «اصطکاک در سطح شیب‌دار»"
+  wrongCount     Int
+  blankCount     Int      @default(0)
+  totalCount     Int
+  status         PrescriptionStatus @default(PENDING)
+  watchedAt      DateTime?
+  recoveredAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, topicId])
 }
 
 model QuestionAnswer {

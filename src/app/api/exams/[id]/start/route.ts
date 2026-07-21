@@ -7,8 +7,13 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
   const { id } = await params
-  const exam = await db.exam.findUnique({ where: { id } })
+  const exam = await db.exam.findUnique({ where: { id }, include: { remedialFor: true } })
   if (!exam || !exam.isActive) return NextResponse.json({ error: 'یافت نشد' }, { status: 404 })
+
+  // Remedial quizzes belong to one student's prescription — nobody else may start them
+  if (exam.type === 'REMEDIAL' && exam.remedialFor?.userId !== user.id) {
+    return NextResponse.json({ error: 'یافت نشد' }, { status: 404 })
+  }
 
   // Block if there's an unfinished attempt
   const unfinished = await db.examAttempt.findFirst({
