@@ -160,7 +160,7 @@ function ManagerHome({ onNavigate }: { onNavigate: (v: string) => void }) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-teal-600" />
+            <GraduationCap className="h-5 w-5 text-primary" />
             خلاصه کلاس‌ها
           </CardTitle>
           <CardDescription>وضعیت هر کلاس و میانگین نمره</CardDescription>
@@ -316,7 +316,7 @@ function ReportCardTrigger({ studentId, studentName, children }: { studentId: st
             <div className="grid grid-cols-3 gap-3 text-center text-sm">
               <div className="rounded-lg border p-3">
                 <div className="text-xs text-muted-foreground">میانگین کلی</div>
-                <div className="text-2xl font-bold text-teal-600">{toFaNumber(data.avgOverall)}</div>
+                <div className="text-2xl font-bold text-primary">{toFaNumber(data.avgOverall)}</div>
                 <div className="text-[10px] text-muted-foreground">از ۲۰</div>
               </div>
               <div className="rounded-lg border p-3">

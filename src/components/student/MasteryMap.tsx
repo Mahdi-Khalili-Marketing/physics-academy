@@ -49,7 +49,7 @@ export function MasteryMap({ onBack }: { onBack: () => void }) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Brain className="h-6 w-6 text-teal-600" />
+            <Brain className="h-6 w-6 text-primary" />
             نقشه تسلط من
           </h1>
           <p className="text-muted-foreground text-sm mt-1">مشخص است کجا قوی هستید و کجا باید تمرین کنید.</p>

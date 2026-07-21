@@ -163,7 +163,7 @@ export function VideoLibrary({ initialVideoId, onBack }: { initialVideoId?: stri
                     {v.view && !v.view.completed && (
                       <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/40">
                         <div
-                          className="h-full bg-teal-500"
+                          className="h-full bg-primary"
                           style={{ width: `${Math.min(100, (v.view.lastPosition / v.durationSec) * 100)}%` }}
                         />
                       </div>
@@ -186,7 +186,7 @@ export function VideoLibrary({ initialVideoId, onBack }: { initialVideoId?: stri
 function SecurityChip({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border text-xs">
-      <span className="text-teal-600">{icon}</span>
+      <span className="text-primary">{icon}</span>
       <span>{text}</span>
     </div>
   )

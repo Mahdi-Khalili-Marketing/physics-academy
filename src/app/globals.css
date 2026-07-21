@@ -45,24 +45,24 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.99 0.004 190);
+  --foreground: oklch(0.2 0.02 210);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.2 0.02 210);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.2 0.02 210);
+  --primary: oklch(0.55 0.11 190);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.012 190);
+  --secondary-foreground: oklch(0.35 0.06 195);
+  --muted: oklch(0.965 0.008 190);
+  --muted-foreground: oklch(0.5 0.02 210);
+  --accent: oklch(0.955 0.02 190);
+  --accent-foreground: oklch(0.32 0.07 195);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.91 0.012 195);
+  --input: oklch(0.91 0.012 195);
+  --ring: oklch(0.55 0.11 190);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -79,24 +79,24 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0.16 0.015 210);
+  --foreground: oklch(0.96 0.005 190);
+  --card: oklch(0.21 0.018 210);
+  --card-foreground: oklch(0.96 0.005 190);
+  --popover: oklch(0.21 0.018 210);
+  --popover-foreground: oklch(0.96 0.005 190);
+  --primary: oklch(0.78 0.11 185);
+  --primary-foreground: oklch(0.2 0.05 195);
+  --secondary: oklch(0.27 0.02 205);
+  --secondary-foreground: oklch(0.96 0.005 190);
+  --muted: oklch(0.27 0.02 205);
+  --muted-foreground: oklch(0.72 0.015 200);
+  --accent: oklch(0.29 0.03 195);
+  --accent-foreground: oklch(0.96 0.005 190);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: oklch(0.78 0.11 185);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -209,4 +209,49 @@ body {
 @keyframes redPulse {
   0%, 100% { box-shadow: 0 0 0 0 oklch(0.65 0.22 25 / 0.4); }
   50%      { box-shadow: 0 0 0 4px oklch(0.65 0.22 25 / 0); }
+}
+
+/* AI tutor chat markdown (no typography plugin) */
+.chat-md p { margin: 0.4rem 0; }
+.chat-md p:first-child { margin-top: 0; }
+.chat-md p:last-child { margin-bottom: 0; }
+.chat-md strong { color: var(--foreground); }
+.chat-md ul, .chat-md ol { margin: 0.4rem 1.25rem 0.4rem 0; list-style: disc; }
+.chat-md ol { list-style: decimal; }
+.chat-md code { background: color-mix(in oklab, currentColor 10%, transparent); padding: 0 0.3em; border-radius: 4px; direction: ltr; display: inline-block; }
+
+/* Visible keyboard focus everywhere */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Press feedback for tactile interactions */
+.press-scale {
+  transition: transform 0.12s ease;
+}
+.press-scale:active {
+  transform: scale(0.97);
+}
+
+/* Numbers align in stats and tables */
+.stat-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mobile bottom navigation */
+.bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

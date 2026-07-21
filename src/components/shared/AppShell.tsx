@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Atom, LogOut, Moon, Sun, Menu, X } from 'lucide-react'
+import { Atom, LogOut, Moon, Sun, MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -43,6 +43,10 @@ export function AppShell({
 
   const initials = user.name.slice(0, 2)
 
+  // Bottom bar holds at most 5 tabs; extras go to the "more" sheet
+  const barNav = nav.length <= 5 ? nav : nav.slice(0, 4)
+  const overflowNav = nav.length <= 5 ? [] : nav.slice(4)
+
   async function handleLogout() {
     await logout()
     toast('خروج موفقیت‌آمیز بود')
@@ -53,22 +57,13 @@ export function AppShell({
       {/* Header */}
       <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label="منو"
-          >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
           <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-teal-500/15 flex items-center justify-center">
-              <Atom className="h-5 w-5 text-teal-600" />
+            <div className="h-9 w-9 rounded-xl bg-primary/12 flex items-center justify-center">
+              <Atom className="h-5 w-5 text-primary" />
             </div>
-            <div className="hidden sm:block">
+            <div>
               <div className="font-bold leading-none">آموزشگاه فیزیک</div>
-              <div className="text-xs text-muted-foreground mt-1">پلتفرم آموزشی هوشمند</div>
+              <div className="hidden sm:block text-xs text-muted-foreground mt-1">پلتفرم آموزشی هوشمند</div>
             </div>
           </div>
 
@@ -130,34 +125,85 @@ export function AppShell({
           </div>
         </aside>
 
-        {/* Mobile drawer */}
-        {mobileOpen && (
-          <div className="fixed inset-0 z-40 lg:hidden">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-            <aside className="absolute right-0 top-16 bottom-0 w-72 bg-background border-l shadow-xl p-3 overflow-y-auto">
-              <nav className="space-y-1">
-                {nav.map((item) => (
-                  <NavButton
-                    key={item.id}
-                    item={item}
-                    active={item.id === activeId}
-                    onClick={() => {
-                      onNavigate(item.id)
-                      setMobileOpen(false)
-                    }}
-                  />
-                ))}
-              </nav>
-            </aside>
-          </div>
-        )}
-
         {/* Main */}
-        <main className="flex-1 min-w-0 p-4 lg:p-6">
+        <main className="flex-1 min-w-0 p-4 pb-24 lg:p-6">
           <div className="page-enter mx-auto max-w-7xl">{children}</div>
         </main>
       </div>
+
+      {/* Mobile "more" sheet */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
+          <div className="absolute bottom-16 inset-x-0 bg-background border-t rounded-t-2xl shadow-xl p-3 bottom-nav">
+            <nav className="space-y-1">
+              {overflowNav.map((item) => (
+                <NavButton
+                  key={item.id}
+                  item={item}
+                  active={item.id === activeId}
+                  onClick={() => {
+                    onNavigate(item.id)
+                    setMobileOpen(false)
+                  }}
+                />
+              ))}
+            </nav>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile bottom navigation */}
+      <nav
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur bottom-nav"
+        aria-label="ناوبری اصلی"
+      >
+        <div className="flex items-stretch justify-around">
+          {barNav.map((item) => (
+            <TabButton
+              key={item.id}
+              item={item}
+              active={item.id === activeId}
+              onClick={() => {
+                onNavigate(item.id)
+                setMobileOpen(false)
+              }}
+            />
+          ))}
+          {overflowNav.length > 0 && (
+            <TabButton
+              item={{ id: '__more', label: 'بیشتر', icon: <MoreHorizontal className="h-5 w-5" /> }}
+              active={mobileOpen || overflowNav.some((i) => i.id === activeId)}
+              onClick={() => setMobileOpen((v) => !v)}
+            />
+          )}
+        </div>
+      </nav>
     </div>
+  )
+}
+
+function TabButton({ item, active, onClick }: { item: NavItem; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'relative flex-1 flex flex-col items-center justify-center gap-1 min-h-14 py-2 text-[11px] font-medium press-scale',
+        active ? 'text-primary' : 'text-muted-foreground',
+      )}
+    >
+      {active && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" />}
+      <span className="relative">
+        {item.icon}
+        {item.badge ? (
+          <span className="absolute -top-1.5 -left-2 min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] leading-4 text-center">
+            {item.badge}
+          </span>
+        ) : null}
+      </span>
+      {item.label}
+    </button>
   )
 }
 
@@ -165,10 +211,11 @@ function NavButton({ item, active, onClick }: { item: NavItem; active: boolean; 
   return (
     <button
       onClick={onClick}
+      aria-current={active ? 'page' : undefined}
       className={cn(
-        'w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+        'w-full flex items-center gap-3 rounded-lg px-3 min-h-11 text-sm font-medium transition-colors press-scale',
         active
-          ? 'bg-teal-500/15 text-teal-700 dark:text-teal-300'
+          ? 'bg-primary/12 text-primary'
           : 'text-muted-foreground hover:bg-muted hover:text-foreground',
       )}
     >

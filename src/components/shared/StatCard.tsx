@@ -22,15 +22,28 @@ const accentClasses: Record<NonNullable<StatCardProps['accent']>, string> = {
   default: '',
 }
 
+const iconChipClasses: Record<NonNullable<StatCardProps['accent']>, string> = {
+  teal: 'bg-teal-500/15 text-teal-600 dark:text-teal-400',
+  amber: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+  red: 'bg-red-500/15 text-red-600 dark:text-red-400',
+  emerald: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+  purple: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
+  default: 'bg-muted text-muted-foreground',
+}
+
 export function StatCard({ title, value, icon, sub, accent = 'default', className }: StatCardProps) {
   return (
     <Card className={cn('hover-lift', accentClasses[accent], className)}>
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        {icon ? <div className="text-muted-foreground">{icon}</div> : null}
+        {icon ? (
+          <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center shrink-0', iconChipClasses[accent])}>
+            {icon}
+          </div>
+        ) : null}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-2xl font-bold stat-num">{value}</div>
         {sub ? <p className="mt-1 text-xs text-muted-foreground">{sub}</p> : null}
       </CardContent>
     </Card>
