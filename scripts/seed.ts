@@ -11,7 +11,7 @@ const db = new PrismaClient()
 
 // ============== Helpers ==============
 function hash(p: string) {
-  return createHash('sha256').digest(p).toString('hex')
+  return createHash('sha256').update(p).digest('hex')
 }
 
 function pick<T>(arr: T[]): T {

@@ -9,7 +9,7 @@ const SESSION_COOKIE = 'phys_session'
 const SESSION_SECRET = process.env.SESSION_SECRET || 'physics-academy-secret-key-change-in-prod'
 
 export function hashPassword(p: string) {
-  return createHash('sha256').digest(p).toString('hex')
+  return createHash('sha256').update(p).digest('hex')
 }
 
 export function verifyPassword(password: string, hash: string) {
