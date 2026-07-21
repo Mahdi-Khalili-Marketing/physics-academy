@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
+  // Dev overlay badge covers the mobile bottom-nav "more" tab
+  devIndicators: false,
 };
 
 export default nextConfig;
