@@ -11,7 +11,7 @@ export async function GET() {
     where: { teacherId: user.id },
   })
 
-  const result = []
+  const result: unknown[] = []
   for (const c of classes) {
     const ids = (c.studentIds as unknown as string[]) || []
     const students = await db.user.findMany({

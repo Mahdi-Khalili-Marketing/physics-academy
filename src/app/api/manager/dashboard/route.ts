@@ -61,7 +61,7 @@ export async function GET() {
 
   // Classes summary
   const classes = await db.class.findMany({ include: { teacher: { select: { name: true } } } })
-  const classSummaries = []
+  const classSummaries: unknown[] = []
   for (const c of classes) {
     const ids = (c.studentIds as unknown as string[]) || []
     const classAttempts = recentAttempts.filter((a) => ids.includes(a.userId))
