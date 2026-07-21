@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Atom, Lock, Phone } from 'lucide-react'
+import { Atom, Lock, Phone, ArrowRight } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { toast } from 'sonner'
 
@@ -15,7 +17,12 @@ const DEMO_ACCOUNTS = [
   { label: 'دانش‌آموز نمونه', phone: '09120010003', role: 'STUDENT' },
 ]
 
+// Quick-login demo shortcuts are for local/dev use only — never expose real
+// account access with no verification on a public production login page.
+const SHOW_DEMO_LOGINS = process.env.NODE_ENV !== 'production'
+
 export function AuthScreen() {
+  const router = useRouter()
   const { fetchMe } = useAppStore()
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
@@ -37,6 +44,7 @@ export function AuthScreen() {
       }
       toast.success(`خوش آمدید، ${data.user.name}`)
       await fetchMe()
+      router.push('/app')
     } catch {
       toast.error('خطا در ارتباط با سرور')
     } finally {
@@ -61,6 +69,7 @@ export function AuthScreen() {
       }
       toast.success(`خوش آمدید، ${data.user.name}`)
       await fetchMe()
+      router.push('/app')
     } finally {
       setSubmitting(false)
     }
@@ -68,12 +77,19 @@ export function AuthScreen() {
 
   return (
     <div className="min-h-screen flex items-center justify-center hero-gradient p-4">
+      <Link
+        href="/"
+        className="absolute top-4 right-4 sm:top-6 sm:right-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowRight className="h-4 w-4" />
+        بازگشت به صفحه اصلی
+      </Link>
       <div className="grid lg:grid-cols-2 gap-8 max-w-5xl w-full items-center">
         {/* Brand / pitch */}
         <div className="space-y-6 p-2 lg:p-8">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-teal-500/15 flex items-center justify-center">
-              <Atom className="h-7 w-7 text-teal-600" />
+            <div className="h-12 w-12 rounded-2xl bg-primary/15 flex items-center justify-center">
+              <Atom className="h-7 w-7 text-primary" />
             </div>
             <div>
               <h1 className="text-2xl font-bold">آموزشگاه فیزیک</h1>
@@ -91,7 +107,7 @@ export function AuthScreen() {
               { t: 'تسلط', d: 'آزمون مجدد' },
             ].map((x, i) => (
               <div key={i} className="rounded-xl border bg-card p-3">
-                <div className="font-bold text-teal-600">{x.t}</div>
+                <div className="font-bold text-primary">{x.t}</div>
                 <div className="text-xs text-muted-foreground mt-1">{x.d}</div>
               </div>
             ))}
@@ -141,22 +157,24 @@ export function AuthScreen() {
               </Button>
             </form>
 
-            <div className="mt-6">
-              <div className="text-xs text-muted-foreground mb-2 text-center">ورود سریع برای دمو:</div>
-              <div className="grid grid-cols-3 gap-2">
-                {DEMO_ACCOUNTS.map((a) => (
-                  <Button
-                    key={a.phone}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => quickLogin(a.phone)}
-                    disabled={submitting}
-                  >
-                    {a.label}
-                  </Button>
-                ))}
+            {SHOW_DEMO_LOGINS && (
+              <div className="mt-6">
+                <div className="text-xs text-muted-foreground mb-2 text-center">ورود سریع برای دمو:</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {DEMO_ACCOUNTS.map((a) => (
+                    <Button
+                      key={a.phone}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => quickLogin(a.phone)}
+                      disabled={submitting}
+                    >
+                      {a.label}
+                    </Button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
