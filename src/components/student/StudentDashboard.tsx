@@ -78,6 +78,7 @@ export function StudentDashboard({
 }) {
   const [data, setData] = useState<Dashboard | null>(null)
   const [loading, setLoading] = useState(true)
+  const [activeCampDay, setActiveCampDay] = useState(4)
 
   useEffect(() => {
     fetch('/api/student/dashboard')
@@ -115,7 +116,6 @@ export function StudentDashboard({
     pct: wrongOptionTotal > 0 ? Math.round(((data.wrongOptionCounts?.[k] ?? 0) / wrongOptionTotal) * 100) : 0,
   }))
 
-  const [activeCampDay, setActiveCampDay] = useState(4)
   const currentDayPlan = TEN_DAY_CAMP.find((c) => c.day === activeCampDay) || TEN_DAY_CAMP[3]
 
   return (
