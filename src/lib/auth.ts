@@ -1,9 +1,7 @@
-// Simple session & auth helpers
-// Uses a signed HTTP-only cookie. No external dependency.
-
 import { cookies } from 'next/headers'
 import { createHash, randomBytes } from 'crypto'
 import { db } from './db'
+import { logToOpenObserve } from './observability'
 
 const SESSION_COOKIE = 'phys_session'
 const SESSION_SECRET = process.env.SESSION_SECRET || 'physics-academy-secret-key-change-in-prod'
@@ -24,9 +22,15 @@ function signToken(payload: Record<string, unknown>) {
 
 function verifyToken(token: string): Record<string, unknown> | null {
   const [body, sig] = token.split('.')
-  if (!body || !sig) return null
+  if (!body || !sig) {
+    logToOpenObserve({ level: 'warn', event: 'security.auth.malformed_token', meta: { tokenLength: token.length } })
+    return null
+  }
   const expectedSig = createHash('sha256').update(`${body}.${SESSION_SECRET}`).digest('hex')
-  if (sig !== expectedSig) return null
+  if (sig !== expectedSig) {
+    logToOpenObserve({ level: 'warn', event: 'security.auth.invalid_signature_tamper', meta: { prefix: body.slice(0, 10) } })
+    return null
+  }
   try {
     return JSON.parse(Buffer.from(body, 'base64url').toString())
   } catch {
@@ -73,6 +77,13 @@ export async function requireUser() {
 export async function requireRole(role: 'STUDENT' | 'TEACHER' | 'MANAGER') {
   const u = await requireUser()
   if (u.role !== role) {
+    logToOpenObserve({
+      level: 'warn',
+      event: 'security.rbac.privilege_escalation_attempt',
+      userId: u.id,
+      role: u.role,
+      meta: { requiredRole: role, userName: u.name },
+    })
     throw new Error('FORBIDDEN')
   }
   return u
