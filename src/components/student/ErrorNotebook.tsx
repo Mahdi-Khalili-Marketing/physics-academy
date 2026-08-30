@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { BookMarked, CheckCircle2, Trash2, RefreshCcw } from 'lucide-react'
 import { toFa, relativeTime } from '@/lib/fa'
 import { toast } from 'sonner'
+import { MathText } from '@/components/shared/MathText'
 
 type Entry = {
   id: string
@@ -101,7 +102,7 @@ export function ErrorNotebook({ onBack }: { onBack: () => void }) {
                       <Badge variant="secondary" className="text-[10px]">{e.topicTitle}</Badge>
                       <span className="text-[10px] text-muted-foreground">{relativeTime(new Date(e.createdAt))}</span>
                     </div>
-                    <div className="font-medium text-sm leading-relaxed">{e.stem}</div>
+                    <MathText text={e.stem} className="font-medium text-sm leading-relaxed" as="div" />
                     <div className="mt-3 flex items-center gap-3 text-sm">
                       <span className="text-red-600">
                         پاسخ شما: <span className="font-bold">{e.selected ? toFa(e.selected) : 'نزده'}</span>

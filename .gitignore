@@ -35,6 +35,11 @@ yarn-error.log*
 
 # local sqlite database — contains real seed/student data, never commit
 /db/*.db
+*.db
+*.db-journal
+prisma/*.db
+prisma/*.db-journal
+stress-test-suite.mjs
 
 # vercel
 .vercel

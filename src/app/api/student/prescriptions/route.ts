@@ -3,7 +3,6 @@ import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 
 // GET /api/student/prescriptions — the student's prescription list, active first.
-// Recovered ones are kept (recent only) so the student sees closed loops too.
 export async function GET() {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
@@ -33,6 +32,7 @@ export async function GET() {
   rows.sort((a, b) => STATUS_RANK[a.status] - STATUS_RANK[b.status])
 
   return NextResponse.json({
+    spotPlayerLicense: user.spotPlayerLicense,
     prescriptions: rows.map((p) => ({
       id: p.id,
       status: p.status,
@@ -53,4 +53,34 @@ export async function GET() {
       recoveredAt: p.recoveredAt,
     })),
   })
+}
+
+// PATCH /api/student/prescriptions — mark video as watched
+export async function PATCH(req: Request) {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
+
+  try {
+    const { prescriptionId } = await req.json()
+    if (!prescriptionId) {
+      return NextResponse.json({ error: 'شناسه نسخه الزامی است' }, { status: 400 })
+    }
+
+    const p = await db.prescription.findUnique({ where: { id: prescriptionId } })
+    if (!p || p.userId !== user.id) {
+      return NextResponse.json({ error: 'نسخه یافت نشد' }, { status: 404 })
+    }
+
+    const updated = await db.prescription.update({
+      where: { id: prescriptionId },
+      data: {
+        status: p.status === 'PENDING' ? 'WATCHED' : p.status,
+        watchedAt: p.watchedAt || new Date(),
+      },
+    })
+
+    return NextResponse.json({ success: true, prescription: updated })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'خطا در ثبت' }, { status: 500 })
+  }
 }

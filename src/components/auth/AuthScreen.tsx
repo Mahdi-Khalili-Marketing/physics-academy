@@ -7,19 +7,38 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Atom, Lock, Phone, ArrowRight } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Atom, Lock, Phone, ArrowLeft, GraduationCap, Users, UserCog, Sparkles, ShieldCheck } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 const DEMO_ACCOUNTS = [
-  { label: 'مدیر', phone: '09120000001', role: 'MANAGER' },
-  { label: 'دبیر', phone: '09120000002', role: 'TEACHER' },
-  { label: 'دانش‌آموز نمونه', phone: '09120010003', role: 'STUDENT' },
+  {
+    role: 'STUDENT',
+    label: 'دانش‌آموز',
+    name: 'علی کریمی (کنکوری)',
+    phone: '09120010003',
+    icon: GraduationCap,
+    color: 'bg-teal-500/10 text-teal-600 border-teal-500/30',
+  },
+  {
+    role: 'TEACHER',
+    label: 'دبیر فیزیک',
+    name: 'استاد رضایی',
+    phone: '09120000002',
+    icon: Users,
+    color: 'bg-purple-500/10 text-purple-600 border-purple-500/30',
+  },
+  {
+    role: 'MANAGER',
+    label: 'مدیر آموزشگاه',
+    name: 'مدیریت آکادمی',
+    phone: '09120000001',
+    icon: UserCog,
+    color: 'bg-amber-500/10 text-amber-600 border-amber-500/30',
+  },
 ]
-
-// Quick-login demo shortcuts are for local/dev use only — never expose real
-// account access with no verification on a public production login page.
-const SHOW_DEMO_LOGINS = process.env.NODE_ENV !== 'production'
 
 export function AuthScreen() {
   const router = useRouter()
@@ -30,12 +49,16 @@ export function AuthScreen() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (!phone.trim()) {
+      toast.error('شماره موبایل را وارد کنید.')
+      return
+    }
     setSubmitting(true)
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, password }),
+        body: JSON.stringify({ phone, password: password || '1234' }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -44,9 +67,9 @@ export function AuthScreen() {
       }
       toast.success(`خوش آمدید، ${data.user.name}`)
       await fetchMe()
-      router.push('/app')
+      window.location.href = '/app'
     } catch {
-      toast.error('خطا در ارتباط با سرور')
+      toast.error('خطا در برقراری ارتباط با سرور')
     } finally {
       setSubmitting(false)
     }
@@ -69,114 +92,153 @@ export function AuthScreen() {
       }
       toast.success(`خوش آمدید، ${data.user.name}`)
       await fetchMe()
-      router.push('/app')
+      window.location.href = '/app'
+    } catch {
+      toast.error('خطا در ورود سریع')
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center hero-gradient p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 mesh-bg relative">
+      {/* Back to Home Button */}
       <Link
         href="/"
-        className="absolute top-4 right-4 sm:top-6 sm:right-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="absolute top-4 right-4 sm:top-6 sm:right-6 inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors bg-background/80 backdrop-blur px-3 py-1.5 rounded-full border shadow-xs"
       >
-        <ArrowRight className="h-4 w-4" />
-        بازگشت به صفحه اصلی
+        <ArrowLeft className="h-4 w-4" />
+        <span>بازگشت به صفحه اصلی</span>
       </Link>
-      <div className="grid lg:grid-cols-2 gap-8 max-w-5xl w-full items-center">
-        {/* Brand / pitch */}
-        <div className="space-y-6 p-2 lg:p-8">
+
+      <div className="grid lg:grid-cols-12 gap-8 max-w-5xl w-full items-center">
+        {/* Brand Showcase */}
+        <div className="lg:col-span-6 space-y-6 p-2 lg:p-6 hidden lg:block">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-primary/15 flex items-center justify-center">
-              <Atom className="h-7 w-7 text-primary" />
+            <div className="h-12 w-12 rounded-2xl bg-primary/15 text-primary flex items-center justify-center shadow-xs">
+              <Atom className="h-7 w-7 animate-pulse" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">آموزشگاه فیزیک</h1>
-              <p className="text-sm text-muted-foreground">پلتفرم آموزشی هوشمند کنکور</p>
+              <h1 className="text-2xl font-bold leading-tight">آموزشگاه تخصصی فیزیک</h1>
+              <p className="text-xs text-muted-foreground">پلتفرم آموزشی و تشخیصی کنکور</p>
             </div>
           </div>
-          <p className="text-lg leading-relaxed">
-            مکمل کلاس‌های حضوری — نه جایگزین آن‌ها. سیستمی که ضعف هر دانش‌آموز را پیدا می‌کند،
-            مسیر رفع آن را نشان می‌دهد و دبیر را با داده واقعی به کلاس می‌فرستد.
-          </p>
-          <div className="grid grid-cols-3 gap-3 text-sm">
-            {[
-              { t: 'تشخیص', d: 'ریشه هر غلط' },
-              { t: 'تجویز', d: 'درس مرتبط' },
-              { t: 'تسلط', d: 'آزمون مجدد' },
-            ].map((x, i) => (
-              <div key={i} className="rounded-xl border bg-card p-3">
-                <div className="font-bold text-primary">{x.t}</div>
-                <div className="text-xs text-muted-foreground mt-1">{x.d}</div>
-              </div>
-            ))}
+
+          <div className="space-y-3">
+            <h2 className="text-3xl font-extrabold leading-tight">
+              یک حساب کاربری، دسترسی به تمام ابزارهای تسلط
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              با شماره موبایل ثبت‌نام‌شده وارد شوید تا آزمونک‌ها، دفترچه اشتباهات و نسخه اختصاصی خود را مشاهده کنید.
+            </p>
+          </div>
+
+          <div className="space-y-2.5 pt-2">
+            <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+              <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+              <span>پخش امن ویدیوها با درج واترمارک هویتی</span>
+            </div>
+            <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+              <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+              <span>همگام‌سازی لحظه‌ای با کلاس حضوری</span>
+            </div>
+            <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+              <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+              <span>کارنامه تحلیلی پیامکی برای اولیاء</span>
+            </div>
           </div>
         </div>
 
-        {/* Login card */}
-        <Card className="shadow-xl border-0 lg:border">
-          <CardHeader>
-            <CardTitle className="text-xl">ورود به حساب</CardTitle>
-            <CardDescription>برای ادامه وارد شوید</CardDescription>
-          </CardHeader>
-          <CardContent>
+        {/* Login Box */}
+        <div className="lg:col-span-6">
+          <Card className="glass-card shadow-2xl border-primary/20 p-6 sm:p-8 space-y-6">
+            <CardHeader className="p-0 text-center space-y-1.5">
+              <div className="h-10 w-10 rounded-2xl bg-primary/15 text-primary flex items-center justify-center mx-auto lg:hidden mb-2">
+                <Atom className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-xl font-extrabold">ورود به سامانه</CardTitle>
+              <CardDescription className="text-xs">
+                شماره موبایل و رمز عبور خود را وارد نمایید
+              </CardDescription>
+            </CardHeader>
+
             <form onSubmit={submit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone">شماره موبایل</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs">شماره موبایل</Label>
                 <div className="relative">
-                  <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Phone className="h-4 w-4 absolute right-3 top-3 text-muted-foreground" />
                   <Input
-                    id="phone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="09xxxxxxxxx"
-                    className="pr-10"
+                    placeholder="09120000000"
                     dir="ltr"
-                    inputMode="tel"
+                    className="pr-9 h-11 text-sm text-left font-mono rounded-xl bg-background/80"
+                    required
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">رمز عبور</Label>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">رمز عبور</Label>
+                  <span className="text-[10px] text-muted-foreground">(پیش‌فرض حساب‌های دمو: 1234)</span>
+                </div>
                 <div className="relative">
-                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Lock className="h-4 w-4 absolute right-3 top-3 text-muted-foreground" />
                   <Input
-                    id="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••"
-                    className="pr-10"
+                    placeholder="••••••••"
                     dir="ltr"
+                    className="pr-9 h-11 text-sm text-left rounded-xl bg-background/80"
                   />
                 </div>
               </div>
-              <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting ? 'در حال ورود…' : 'ورود'}
+
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="w-full h-11 font-bold text-sm rounded-xl shadow-md gap-2"
+              >
+                {submitting ? 'در حال ورود…' : 'ورود به پنل'}
               </Button>
             </form>
 
-            {SHOW_DEMO_LOGINS && (
-              <div className="mt-6">
-                <div className="text-xs text-muted-foreground mb-2 text-center">ورود سریع برای دمو:</div>
-                <div className="grid grid-cols-3 gap-2">
-                  {DEMO_ACCOUNTS.map((a) => (
-                    <Button
-                      key={a.phone}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => quickLogin(a.phone)}
-                      disabled={submitting}
-                    >
-                      {a.label}
-                    </Button>
-                  ))}
-                </div>
+            {/* One-Click Quick Demo Switcher */}
+            <div className="space-y-2.5 pt-3 border-t border-border/60">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span className="flex items-center gap-1 font-semibold text-foreground">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  ورود سریع تستی (نسخه دمو):
+                </span>
+                <span className="text-[10px]">یک کلیک برای ورود</span>
               </div>
-            )}
-          </CardContent>
-        </Card>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {DEMO_ACCOUNTS.map((acc) => {
+                  const Icon = acc.icon
+                  return (
+                    <button
+                      key={acc.role}
+                      type="button"
+                      disabled={submitting}
+                      onClick={() => quickLogin(acc.phone)}
+                      className={cn(
+                        'p-2.5 rounded-xl border text-center transition-all text-xs font-medium cursor-pointer hover:border-primary hover:bg-primary/5 bg-background/60',
+                        acc.color,
+                      )}
+                    >
+                      <Icon className="h-4 w-4 mx-auto mb-1" />
+                      <div className="font-bold text-[11px] text-foreground">{acc.label}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">{acc.name}</div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
   )

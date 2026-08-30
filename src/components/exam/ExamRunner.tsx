@@ -22,12 +22,16 @@ import {
   PlayCircle,
   RefreshCcw,
   BookOpen,
+  Bookmark,
+  ListFilter,
+  Zap,
 } from 'lucide-react'
 import { toFa, toFaNumber, formatDuration } from '@/lib/fa'
 import { examTypeLabel } from '@/components/student/StudentDashboard'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import { MathText } from '@/components/shared/MathText'
 
 type ExamData = {
   exam: {
@@ -95,6 +99,9 @@ export function ExamRunner({ examId, onExit, onViewLibrary, onOpenExam }: { exam
   const [timeLeft, setTimeLeft] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<SubmitResult | null>(null)
+  const [flagged, setFlagged] = useState<Record<string, boolean>>({})
+  const [sidebarTab, setSidebarTab] = useState<'omr' | 'grid'>('omr')
+  const [sidebarFilter, setSidebarFilter] = useState<'all' | 'answered' | 'unanswered' | 'flagged'>('all')
   const questionStartRef = useRef<number>(Date.now())
 
   // Load exam
@@ -289,44 +296,89 @@ export function ExamRunner({ examId, onExit, onViewLibrary, onOpenExam }: { exam
   // ============ EXAM TAKING VIEW ============
   const q = exam.questions[currentIdx]
   const answered = Object.values(answers).filter((a) => a.selected !== null).length
+  const flaggedCount = Object.values(flagged).filter(Boolean).length
   const progressPct = (answered / exam.questions.length) * 100
+
+  // Calculate speed telemetry
+  const totalSpentSec = Object.values(answers).reduce((s, a) => s + (a.timeSpentSec || 0), 0)
+  const avgSecPerQ = answered > 0 ? Math.round(totalSpentSec / answered) : 0
+
+  const filteredQuestions = exam.questions.map((qq, idx) => ({ ...qq, originalIndex: idx })).filter((qq) => {
+    const isAns = answers[qq.id]?.selected !== null && answers[qq.id]?.selected !== undefined
+    const isFlag = !!flagged[qq.id]
+    if (sidebarFilter === 'answered') return isAns
+    if (sidebarFilter === 'unanswered') return !isAns
+    if (sidebarFilter === 'flagged') return isFlag
+    return true
+  })
 
   return (
     <div className="space-y-4 page-enter max-w-5xl mx-auto">
       {/* Top bar */}
-      <div className="flex items-center justify-between gap-3 sticky top-16 z-10 bg-background/80 backdrop-blur p-3 rounded-lg border">
+      <div className="flex items-center justify-between gap-3 sticky top-16 z-20 glass-panel p-3.5 rounded-2xl shadow-xs">
         <div className="flex items-center gap-2">
-          <Badge variant="outline">{examTypeLabel(exam.type)}</Badge>
-          <span className="text-sm font-medium hidden sm:inline">{exam.title}</span>
+          <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
+            {examTypeLabel(exam.type)}
+          </Badge>
+          <span className="text-sm font-bold hidden sm:inline">{exam.title}</span>
         </div>
         <div className="flex items-center gap-3">
-          <div className={cn('flex items-center gap-2 px-3 py-1 rounded-lg font-mono', timeLeft < 60 ? 'bg-red-500/15 text-red-600' : 'bg-muted')}>
-            <Clock className="h-4 w-4" />
-            {formatDuration(timeLeft)}
+          <div
+            className={cn(
+              'flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold border transition-colors',
+              timeLeft < 60
+                ? 'bg-red-500/20 text-red-600 border-red-500/40 animate-pulse status-dot-red'
+                : timeLeft < 180
+                ? 'bg-amber-500/15 text-amber-600 border-amber-500/30'
+                : 'bg-muted/80 border-border/60',
+            )}
+          >
+            <Clock className="h-4 w-4 shrink-0" />
+            <span>{formatDuration(timeLeft)}</span>
           </div>
-          <Button onClick={() => submit(false)} disabled={submitting} className="gap-2">
-            <Flag className="h-4 w-4" /> ثبت نهایی
+          <Button onClick={() => submit(false)} disabled={submitting} size="sm" className="gap-1.5 shadow-xs text-xs font-bold">
+            <Flag className="h-3.5 w-3.5" />
+            <span>ثبت نهایی آزمون</span>
           </Button>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_240px] gap-4">
+      <div className="grid lg:grid-cols-[1fr_300px] gap-4">
         {/* Question card */}
-        <Card>
-          <CardContent className="p-6 space-y-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="text-xs text-muted-foreground">
-                سؤال {toFa(currentIdx + 1)} از {toFa(exam.questions.length)} · مبحث: {q.topic.title}
+        <Card className="glass-card shadow-sm border-primary/20">
+          <CardContent className="p-6 sm:p-7 space-y-6">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                <span className="h-6 w-6 rounded-lg bg-primary/15 text-primary flex items-center justify-center font-bold text-xs">
+                  {toFa(currentIdx + 1)}
+                </span>
+                <span>از {toFa(exam.questions.length)} سوال · مبحث: {q.topic.title}</span>
               </div>
-              <Badge variant="secondary" className="text-[10px]">{difficultyLabel(q.difficulty)}</Badge>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={flagged[q.id] ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFlagged((prev) => ({ ...prev, [q.id]: !prev[q.id] }))}
+                  className={cn(
+                    'gap-1.5 text-xs h-7 px-2.5 rounded-lg transition-colors',
+                    flagged[q.id] ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-500' : 'text-muted-foreground',
+                  )}
+                >
+                  <Bookmark className={cn('h-3.5 w-3.5', flagged[q.id] && 'fill-current')} />
+                  <span>{flagged[q.id] ? 'شک‌دار (علامت‌زده)' : 'علامت‌گذاری شک‌دار'}</span>
+                </Button>
+                <Badge variant="secondary" className="text-[10px] font-semibold">{difficultyLabel(q.difficulty)}</Badge>
+              </div>
             </div>
-            <div className="text-lg leading-relaxed font-medium">{q.stem}</div>
+
+            <MathText text={q.stem} as="div" className="text-base sm:text-lg leading-relaxed font-semibold text-foreground" />
+
             <RadioGroup
               value={answers[q.id]?.selected ?? ''}
               onValueChange={(v) => selectAnswer(q.id, v as 'A' | 'B' | 'C' | 'D')}
-              className="space-y-2"
+              className="space-y-2.5 pt-2"
             >
-              {(['A', 'B', 'C', 'D'] as const).map((opt) => {
+              {(['A', 'B', 'C', 'D'] as const).map((opt, optIdx) => {
                 const text = q[`option${opt}` as 'optionA' | 'optionB' | 'optionC' | 'optionD']
                 const selected = answers[q.id]?.selected === opt
                 return (
@@ -334,73 +386,218 @@ export function ExamRunner({ examId, onExit, onViewLibrary, onOpenExam }: { exam
                     key={opt}
                     htmlFor={`q-${q.id}-${opt}`}
                     className={cn(
-                      'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:border-primary/50 hover:bg-primary/5',
-                      selected && 'border-primary bg-primary/10',
+                      'flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all card-interactive',
+                      selected
+                        ? 'border-primary bg-primary/10 shadow-xs ring-1 ring-primary'
+                        : 'border-border/70 bg-card hover:bg-muted/40',
                     )}
                   >
                     <RadioGroupItem value={opt} id={`q-${q.id}-${opt}`} className="mt-1" />
                     <div className="flex-1">
-                      <span className="text-xs font-bold text-primary ml-2">{opt}.</span>
-                      <span>{text}</span>
+                      <span className="text-xs font-bold text-primary ml-2">{toFa(optIdx + 1)}.</span>
+                      <MathText text={text} />
                     </div>
                   </Label>
                 )
               })}
             </RadioGroup>
 
-            <div className="flex items-center justify-between pt-3 border-t">
-              <Button variant="ghost" onClick={goPrev} disabled={currentIdx === 0} className="gap-1">
-                <ChevronRight className="h-4 w-4" /> قبلی
+            <div className="flex items-center justify-between pt-4 border-t border-border/60">
+              <Button variant="ghost" size="sm" onClick={goPrev} disabled={currentIdx === 0} className="gap-1 text-xs">
+                <ChevronRight className="h-4 w-4" /> سوال قبلی
               </Button>
               <Button
                 variant="ghost"
+                size="sm"
                 onClick={() => selectAnswer(q.id, null)}
-                className="gap-1 text-amber-600"
+                className="gap-1 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
               >
-                <MinusCircle className="h-4 w-4" /> بدون پاسخ
+                <MinusCircle className="h-3.5 w-3.5" /> پاک کردن پاسخ
               </Button>
               {currentIdx < exam.questions.length - 1 ? (
-                <Button onClick={goNext} className="gap-1">
-                  بعدی <ChevronLeft className="h-4 w-4" />
+                <Button size="sm" onClick={goNext} className="gap-1 text-xs font-bold shadow-xs">
+                  سوال بعدی <ChevronLeft className="h-4 w-4" />
                 </Button>
               ) : (
-                <Button onClick={() => submit(false)} disabled={submitting} className="gap-2">
-                  <Flag className="h-4 w-4" /> ثبت
+                <Button size="sm" onClick={() => submit(false)} disabled={submitting} className="gap-1.5 text-xs font-bold shadow-xs bg-emerald-600 hover:bg-emerald-700">
+                  <Flag className="h-3.5 w-3.5" /> پایان و ثبت
                 </Button>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Side nav */}
-        <Card className="h-fit">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">نقشه سؤالات</CardTitle>
+        {/* Side nav: Digital OMR + Question Matrix */}
+        <Card className="glass-card shadow-sm border-primary/20 h-fit space-y-3 p-3.5">
+          {/* Progress Header */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs font-bold">
+              <span>پیشرفت پاسخگویی</span>
+              <span className="text-primary font-mono">{toFa(answered)} / {toFa(exam.questions.length)}</span>
+            </div>
             <Progress value={progressPct} className="h-1.5" />
-            <div className="text-xs text-muted-foreground">{toFa(answered)} از {toFa(exam.questions.length)} پاسخ داده شده</div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-5 gap-2">
-              {exam.questions.map((qq, i) => {
+          </div>
+
+          {/* Mode Switcher Tabs */}
+          <div className="grid grid-cols-2 gap-1 p-1 bg-muted/60 rounded-xl text-xs font-semibold">
+            <button
+              onClick={() => setSidebarTab('omr')}
+              className={cn(
+                'py-1.5 rounded-lg text-center transition-all cursor-pointer',
+                sidebarTab === 'omr' ? 'bg-background shadow-xs text-foreground font-bold' : 'text-muted-foreground',
+              )}
+            >
+              پاسخ‌برگ حبابی
+            </button>
+            <button
+              onClick={() => setSidebarTab('grid')}
+              className={cn(
+                'py-1.5 rounded-lg text-center transition-all cursor-pointer',
+                sidebarTab === 'grid' ? 'bg-background shadow-xs text-foreground font-bold' : 'text-muted-foreground',
+              )}
+            >
+              ماتریس سوالات
+            </button>
+          </div>
+
+          {/* Filter Chips */}
+          <div className="flex items-center justify-between gap-1 text-[10px] pb-1 border-b border-border/50">
+            <button
+              onClick={() => setSidebarFilter('all')}
+              className={cn(
+                'px-2 py-0.5 rounded-md transition-colors',
+                sidebarFilter === 'all' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-muted',
+              )}
+            >
+              همه ({toFa(exam.questions.length)})
+            </button>
+            <button
+              onClick={() => setSidebarFilter('answered')}
+              className={cn(
+                'px-2 py-0.5 rounded-md transition-colors',
+                sidebarFilter === 'answered' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-muted',
+              )}
+            >
+              پاسخ‌داده ({toFa(answered)})
+            </button>
+            <button
+              onClick={() => setSidebarFilter('flagged')}
+              className={cn(
+                'px-2 py-0.5 rounded-md transition-colors flex items-center gap-0.5',
+                sidebarFilter === 'flagged' ? 'bg-amber-500 text-white font-bold' : 'text-amber-600 hover:bg-amber-500/10',
+              )}
+            >
+              <Bookmark className="h-2.5 w-2.5 fill-current" />
+              <span>({toFa(flaggedCount)})</span>
+            </button>
+          </div>
+
+          {/* Tab 1: Digital OMR Bubble Sheet */}
+          {sidebarTab === 'omr' ? (
+            <div className="max-h-[320px] overflow-y-auto space-y-1.5 pr-1">
+              {filteredQuestions.map((qq) => {
+                const i = qq.originalIndex
+                const isCurrent = i === currentIdx
+                const isFlagged = !!flagged[qq.id]
+                const selectedOpt = answers[qq.id]?.selected
+
+                return (
+                  <div
+                    key={qq.id}
+                    className={cn(
+                      'flex items-center justify-between p-1.5 rounded-xl border transition-all text-xs',
+                      isCurrent
+                        ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                        : 'border-border/60 bg-card hover:bg-muted/30',
+                    )}
+                  >
+                    <button
+                      onClick={() => { setCurrentIdx(i); questionStartRef.current = Date.now() }}
+                      className="font-bold w-6 text-center text-muted-foreground hover:text-foreground"
+                    >
+                      {toFa(i + 1)}
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      {(['A', 'B', 'C', 'D'] as const).map((opt, optIdx) => {
+                        const isChosen = selectedOpt === opt
+                        return (
+                          <button
+                            key={opt}
+                            onClick={() => {
+                              selectAnswer(qq.id, opt)
+                              setCurrentIdx(i)
+                              questionStartRef.current = Date.now()
+                            }}
+                            className={cn(
+                              'h-5 w-5 rounded-full text-[10px] font-bold border transition-all flex items-center justify-center cursor-pointer',
+                              isChosen
+                                ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                                : 'bg-muted/40 border-border/80 hover:border-primary/50 text-muted-foreground',
+                            )}
+                          >
+                            {toFa(optIdx + 1)}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    <button
+                      onClick={() => setFlagged((prev) => ({ ...prev, [qq.id]: !prev[qq.id] }))}
+                      className="p-1 text-muted-foreground hover:text-amber-500 transition-colors"
+                    >
+                      <Bookmark className={cn('h-3.5 w-3.5', isFlagged ? 'text-amber-500 fill-current' : 'opacity-30')} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            /* Tab 2: Question Matrix Grid */
+            <div className="grid grid-cols-5 gap-1.5 max-h-[320px] overflow-y-auto pr-1">
+              {filteredQuestions.map((qq) => {
+                const i = qq.originalIndex
                 const a = answers[qq.id]
                 const isCurrent = i === currentIdx
                 const isAnswered = a?.selected !== null && a?.selected !== undefined
+                const isFlagged = !!flagged[qq.id]
+
                 return (
                   <button
                     key={qq.id}
                     onClick={() => { setCurrentIdx(i); questionStartRef.current = Date.now() }}
                     className={cn(
-                      'aspect-square rounded-md text-sm font-medium border transition-all',
+                      'aspect-square rounded-xl text-xs font-bold border transition-all flex flex-col items-center justify-center relative cursor-pointer',
                       isCurrent && 'ring-2 ring-primary',
-                      isAnswered ? 'bg-primary/15 border-primary/40 text-primary' : 'bg-muted border-transparent',
+                      isAnswered
+                        ? 'bg-primary/15 border-primary/40 text-primary'
+                        : 'bg-muted/40 border-border/60 text-muted-foreground',
                     )}
                   >
-                    {toFa(i + 1)}
+                    <span>{toFa(i + 1)}</span>
+                    {isFlagged && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500 absolute top-1 right-1" />
+                    )}
                   </button>
                 )
               })}
             </div>
-          </CardContent>
+          )}
+
+          {/* Speed Telemetry Box (Konkoor 74s Benchmark) */}
+          <div className="pt-2 border-t border-border/60 space-y-1 text-[11px] text-muted-foreground bg-primary/5 rounded-xl p-2.5">
+            <div className="flex items-center justify-between font-medium">
+              <span className="flex items-center gap-1 text-foreground">
+                <Zap className="h-3.5 w-3.5 text-amber-500" />
+                سرعت پاسخگویی:
+              </span>
+              <span className="font-mono font-bold text-primary">{toFa(avgSecPerQ)} ثانیه / تست</span>
+            </div>
+            <div className="text-[10px] text-muted-foreground flex justify-between">
+              <span>استاندارد کنکور فیزیک:</span>
+              <span className="font-semibold">۷۴ ثانیه</span>
+            </div>
+          </div>
         </Card>
       </div>
     </div>

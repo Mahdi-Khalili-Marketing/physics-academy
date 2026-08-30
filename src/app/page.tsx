@@ -1,21 +1,15 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/lib/store'
 import { LandingPage } from '@/components/marketing/LandingPage'
 
 export default function Home() {
-  const router = useRouter()
-  const { user, loading, fetchMe } = useAppStore()
+  const { fetchMe } = useAppStore()
 
   useEffect(() => {
     fetchMe()
   }, [fetchMe])
-
-  useEffect(() => {
-    if (!loading && user) router.replace('/app')
-  }, [loading, user, router])
 
   return <LandingPage />
 }

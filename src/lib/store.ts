@@ -20,6 +20,7 @@ type AppState = {
   setUser: (u: AuthUser | null) => void
   setLoading: (b: boolean) => void
   fetchMe: () => Promise<void>
+  switchRole: (newRole: Role) => void
   logout: () => Promise<void>
 }
 
@@ -31,11 +32,21 @@ export const useAppStore = create<AppState>((set) => ({
   fetchMe: async () => {
     try {
       const res = await fetch('/api/auth/me')
+      if (!res.ok) {
+        set({ user: null, loading: false })
+        return
+      }
       const data = await res.json()
       set({ user: data.user || null, loading: false })
     } catch {
       set({ user: null, loading: false })
     }
+  },
+  switchRole: (newRole: Role) => {
+    set((state) => {
+      if (!state.user) return state
+      return { user: { ...state.user, role: newRole } }
+    })
   },
   logout: async () => {
     await fetch('/api/auth/logout', { method: 'POST' })

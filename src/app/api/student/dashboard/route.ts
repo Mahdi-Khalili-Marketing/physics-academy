@@ -130,6 +130,7 @@ export async function GET() {
       name: user.name,
       phone: user.phone,
       avatarColor: user.avatarColor,
+      spotPlayerLicense: user.spotPlayerLicense,
     },
     stats: {
       totalAttempts: attempts.length,

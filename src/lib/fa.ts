@@ -2,28 +2,36 @@
 
 const FA_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹']
 
-export function toFa(input: number | string): string {
+export function toFa(input: number | string | undefined | null): string {
+  if (input === undefined || input === null) return ''
   return String(input).replace(/[0-9]/g, (d) => FA_DIGITS[Number(d)])
 }
 
-export function toFaNumber(n: number, decimals = 0): string {
-  return toFa(n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }))
+export function toFaNumber(n: number | undefined | null, decimals = 0): string {
+  if (n === undefined || n === null || isNaN(Number(n))) return '۰'
+  return toFa(Number(n).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }))
 }
 
-export function formatToman(amount: number): string {
-  return `${toFa(amount.toLocaleString('en-US'))} تومان`
+export function formatToman(amount: number | undefined | null): string {
+  if (amount === undefined || amount === null || isNaN(Number(amount))) return '۰ تومان'
+  return `${toFa(Number(amount).toLocaleString('en-US'))} تومان`
 }
 
-export function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = seconds % 60
+export function formatDuration(seconds: number | undefined | null): string {
+  if (seconds === undefined || seconds === null || isNaN(Number(seconds))) return '۰:۰۰'
+  const sec = Math.max(0, Math.floor(Number(seconds)))
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  const s = sec % 60
   if (h > 0) return `${toFa(h)}:${toFa(String(m).padStart(2, '0'))}:${toFa(String(s).padStart(2, '0'))}`
   return `${toFa(m)}:${toFa(String(s).padStart(2, '0'))}`
 }
 
-export function relativeTime(date: Date): string {
-  const diff = Date.now() - date.getTime()
+export function relativeTime(date: Date | string | number | undefined | null): string {
+  if (!date) return 'اخیراً'
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return 'اخیراً'
+  const diff = Date.now() - d.getTime()
   const sec = Math.floor(diff / 1000)
   if (sec < 60) return 'لحظاتی پیش'
   const min = Math.floor(sec / 60)
@@ -37,14 +45,17 @@ export function relativeTime(date: Date): string {
   return `${toFa(Math.floor(month / 12))} سال پیش`
 }
 
-export function faDate(date: Date): string {
+export function faDate(date: Date | string | number | undefined | null): string {
+  if (!date) return ''
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return ''
   try {
     return new Intl.DateTimeFormat('fa-IR', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-    }).format(date)
+    }).format(d)
   } catch {
-    return date.toISOString().slice(0, 10)
+    return d.toISOString().slice(0, 10)
   }
 }

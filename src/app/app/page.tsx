@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   LayoutDashboard,
   Target,
@@ -14,6 +15,8 @@ import {
   FileText,
   PlusCircle,
   ClipboardList,
+  LogIn,
+  Activity,
 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { AppShell, NavItem } from '@/components/shared/AppShell'
@@ -27,6 +30,8 @@ import { MasteryMap } from '@/components/student/MasteryMap'
 import { TeacherDashboard } from '@/components/teacher/TeacherDashboard'
 import { ManagerDashboard } from '@/components/manager/ManagerDashboard'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 
 export default function AppHome() {
   const router = useRouter()
@@ -39,14 +44,37 @@ export default function AppHome() {
     fetchMe()
   }, [fetchMe])
 
-  useEffect(() => {
-    if (!loading && !user) router.replace('/login')
-  }, [loading, user, router])
-
-  if (loading || !user) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Skeleton className="h-96 w-96" />
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="space-y-4 w-full max-w-md text-center">
+          <Skeleton className="h-12 w-12 rounded-full mx-auto" />
+          <Skeleton className="h-6 w-48 mx-auto" />
+          <Skeleton className="h-4 w-64 mx-auto" />
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4" dir="rtl">
+        <Card className="max-w-md w-full text-center p-6 border-primary/20 shadow-lg">
+          <CardContent className="space-y-4 pt-4">
+            <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
+              <LogIn className="h-6 w-6" />
+            </div>
+            <h2 className="text-xl font-bold">ورود به حساب کاربری</h2>
+            <p className="text-sm text-muted-foreground">
+              برای مشاهده داشبورد، لطفاً ابتدا وارد حساب کاربری خود شوید.
+            </p>
+            <Button asChild className="w-full gap-2">
+              <Link href="/login">
+                <LogIn className="h-4 w-4" /> رفتن به صفحه ورود
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -82,12 +110,18 @@ export default function AppHome() {
               }
             }}
             onOpenLibrary={() => setView('library')}
-            onOpenVideo={(vid) => { setVideoId(vid); setView('library') }}
+            onOpenVideo={(vid) => {
+              setVideoId(vid)
+              setView('library')
+            }}
           />
         )}
         {view === 'exams' && (
           <ExamList
-            onOpen={(id) => { setExamId(id); setView('exam-runner') }}
+            onOpen={(id) => {
+              setExamId(id)
+              setView('exam-runner')
+            }}
             onBack={() => setView('home')}
           />
         )}
@@ -95,8 +129,14 @@ export default function AppHome() {
           <ExamRunner
             key={examId}
             examId={examId}
-            onExit={() => { setExamId(null); setView('exams') }}
-            onViewLibrary={(vid) => { setVideoId(vid); setView('library') }}
+            onExit={() => {
+              setExamId(null)
+              setView('exams')
+            }}
+            onViewLibrary={(vid) => {
+              setVideoId(vid)
+              setView('library')
+            }}
             onOpenExam={(id) => setExamId(id)}
           />
         )}
@@ -133,22 +173,10 @@ export default function AppHome() {
   if (user.role === 'MANAGER') {
     const nav: NavItem[] = [
       { id: 'home', label: 'داشبورد مدیریت', icon: <LayoutDashboard className="h-4 w-4" /> },
-      { id: 'students', label: 'دانش‌آموزان', icon: <Users className="h-4 w-4" /> },
-      { id: 'reports', label: 'گزارش‌ها', icon: <FileText className="h-4 w-4" /> },
+      { id: 'students', label: 'دانش‌آموزان و ایمپورت', icon: <Users className="h-4 w-4" /> },
+      { id: 'leads', label: 'لیدهای هوش مصنوعی', icon: <Sparkles className="h-4 w-4" /> },
+      { id: 'observability', label: 'پایش و OpenObserve', icon: <Activity className="h-4 w-4" /> },
     ]
-
-    // For now reports view → just show student list (since report cards are modal)
-    if (view === 'reports') {
-      return (
-        <AppShell nav={nav} activeId="reports" onNavigate={setView}>
-          <div className="space-y-4">
-            <h1 className="text-2xl font-bold">گزارش‌ها</h1>
-            <p className="text-muted-foreground">برای مشاهده کارنامه هر دانش‌آموز، از فهرست دانش‌آموزان استفاده کنید.</p>
-            <button onClick={() => setView('students')} className="text-teal-600 underline">رفتن به فهرست دانش‌آموزان ←</button>
-          </div>
-        </AppShell>
-      )
-    }
 
     return (
       <AppShell nav={nav} activeId={view} onNavigate={setView}>

@@ -21,9 +21,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
   const { id } = await params
-  const { attemptId, answers } = (await req.json()) as {
-    attemptId: string
-    answers: { questionId: string; selected: 'A' | 'B' | 'C' | 'D' | null; timeSpentSec: number }[]
+  
+  const rawBody = (await req.json().catch(() => ({}))) as any
+  const attemptId = rawBody.attemptId
+
+  let answersList: { questionId: string; selected: 'A' | 'B' | 'C' | 'D' | null; timeSpentSec: number }[] = []
+  if (Array.isArray(rawBody.answers)) {
+    answersList = rawBody.answers
+  } else if (rawBody.answers && typeof rawBody.answers === 'object') {
+    answersList = Object.entries(rawBody.answers).map(([qId, val]) => {
+      if (typeof val === 'string') {
+        return { questionId: qId, selected: val as any, timeSpentSec: 60 }
+      }
+      return {
+        questionId: qId,
+        selected: (val as any)?.selected ?? null,
+        timeSpentSec: (val as any)?.timeSpentSec ?? 60,
+      }
+    })
   }
 
   const exam = await db.exam.findUnique({
@@ -63,7 +78,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     topicTitle: string
   }[] = []
 
-  for (const ans of answers) {
+  for (const ans of answersList) {
     const q = questions.find((qq) => qq.id === ans.questionId)
     if (!q) continue
     const isCorrect = ans.selected === q.correctOption

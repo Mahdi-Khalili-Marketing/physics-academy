@@ -19,6 +19,7 @@ import { Sparkles, Plus, RotateCw, Check, X, Layers } from 'lucide-react'
 import { toFa, faDate } from '@/lib/fa'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { MathText } from '@/components/shared/MathText'
 
 type Card = {
   id: string
@@ -152,7 +153,7 @@ export function LeitnerBox({ onBack }: { onBack: () => void }) {
         <Card className="border-2 border-purple-500/40">
           <CardContent className="p-8 text-center space-y-6">
             <div className="text-sm text-muted-foreground">روی کارت:</div>
-            <div className="text-2xl font-bold">{currentReview.front}</div>
+            <MathText text={currentReview.front} className="text-2xl font-bold block" as="div" />
             {!showAnswer ? (
               <Button onClick={() => setShowAnswer(true)} size="lg" className="gap-2">
                 <RotateCw className="h-4 w-4" /> نمایش پاسخ
@@ -160,7 +161,9 @@ export function LeitnerBox({ onBack }: { onBack: () => void }) {
             ) : (
               <>
                 <div className="text-sm text-muted-foreground">پشت کارت:</div>
-                <div className="text-xl font-mono bg-muted p-4 rounded-lg">{currentReview.back}</div>
+                <div className="bg-muted p-4 rounded-lg">
+                  <MathText text={currentReview.back} className="text-xl font-medium" as="div" />
+                </div>
                 <div className="text-sm text-muted-foreground">آیا درست یادآوری کردید؟</div>
                 <div className="flex justify-center gap-3">
                   <Button onClick={() => reviewCard(currentReview.id, false)} variant="destructive" className="gap-2">
@@ -211,8 +214,10 @@ export function LeitnerBox({ onBack }: { onBack: () => void }) {
                 {boxCards.map((c) => (
                   <Card key={c.id} className={cn('hover-lift', c.due && 'border-amber-500/40')}>
                     <CardContent className="p-3">
-                      <div className="text-sm font-medium">{c.front}</div>
-                      <div className="text-xs text-muted-foreground mt-1 font-mono">{c.back}</div>
+                      <MathText text={c.front} className="text-sm font-medium block" as="div" />
+                      <div className="text-xs text-muted-foreground mt-1">
+                        <MathText text={c.back} />
+                      </div>
                       {c.due && (
                         <Badge variant="secondary" className="mt-2 text-[10px] bg-amber-500/20">زود مرور شود</Badge>
                       )}

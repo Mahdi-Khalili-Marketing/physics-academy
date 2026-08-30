@@ -29,6 +29,7 @@ import {
   Copy,
 } from 'lucide-react'
 import { StatCard } from '@/components/shared/StatCard'
+import { MathText } from '@/components/shared/MathText'
 import { toFa, toFaNumber, relativeTime } from '@/lib/fa'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -88,12 +89,13 @@ function TeacherHome({ onNavigate }: { onNavigate: (v: string) => void }) {
 
   useEffect(() => {
     fetch('/api/teacher/dashboard')
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json() : null))
       .then((d) => setData(d))
+      .catch(() => setData(null))
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading || !data) return <Skeleton className="h-96" />
+  if (loading || !data || !data.teacher || !data.classes) return <Skeleton className="h-96" />
 
   return (
     <div className="space-y-6">
@@ -102,7 +104,7 @@ function TeacherHome({ onNavigate }: { onNavigate: (v: string) => void }) {
         <CardContent className="p-6 lg:p-8">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold">سلام {data.teacher.name.split(' ').slice(0, 2).join(' ')} 👋</h1>
+              <h1 className="text-2xl lg:text-3xl font-bold">سلام {(data?.teacher?.name || 'استاد').split(' ').slice(0, 2).join(' ')} 👋</h1>
               <p className="text-muted-foreground mt-2">
                 <span className="font-bold text-amber-600">{toFa(data.inactiveStudents)} دانش‌آموز غیرفعال</span> در کلاس‌های شما هستند.
                 میانگین نمره کلاس: <span className="font-bold text-primary">{toFaNumber(data.avgScore)}</span> از ۲۰.
@@ -391,12 +393,13 @@ function QuestionsPanel({ onBack }: { onBack: () => void }) {
                       {q.approvalStatus === 'APPROVED' && <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-700">تأییدشده</Badge>}
                       {q.approvalStatus === 'REJECTED' && <Badge variant="outline" className="text-[10px] bg-red-500/10 text-red-700">ردشده</Badge>}
                     </div>
-                    <div className="text-sm font-medium leading-relaxed">{q.stem}</div>
+                    <MathText text={q.stem} className="text-sm font-medium leading-relaxed" as="div" />
                     <div className="grid grid-cols-2 gap-1 mt-3 text-xs">
                       {(['A', 'B', 'C', 'D'] as const).map((o) => (
                         <div key={o} className={cn('flex gap-1', q.correctOption === o && 'text-emerald-600 font-bold')}>
-                          <span>{toFa(o)}.</span><span>{q[`option${o}`]}</span>
-                          {q.correctOption === o && <CheckCircle2 className="h-3 w-3" />}
+                          <span>{toFa(o)}.</span>
+                          <MathText text={q[`option${o}`]} />
+                          {q.correctOption === o && <CheckCircle2 className="h-3 w-3 inline" />}
                         </div>
                       ))}
                     </div>
@@ -436,12 +439,12 @@ function QuestionsPanel({ onBack }: { onBack: () => void }) {
                     </div>
                     {variants.map((v, idx) => (
                       <div key={idx} className="rounded-lg border bg-muted/30 p-3">
-                        <div className="text-sm">{v.stem}</div>
+                        <MathText text={v.stem} className="text-sm" as="div" />
                         <div className="grid grid-cols-2 gap-1 mt-2 text-xs">
                           {(['A', 'B', 'C', 'D'] as const).map((o) => (
                             <div key={o} className={cn('flex gap-1', v.correctOption === o && 'text-emerald-600 font-bold')}>
                               <span>{toFa(o)}.</span>
-                              <span>{v[`option${o}` as keyof Variant]}</span>
+                              <MathText text={v[`option${o}` as keyof Variant]} />
                             </div>
                           ))}
                         </div>
@@ -587,7 +590,13 @@ function AddQuestionPanel({ onBack }: { onBack: () => void }) {
                 {tagging ? 'در حال تشخیص…' : 'تگ خودکار با AI'}
               </Button>
             </div>
-            <Textarea value={stem} onChange={(e) => setStem(e.target.value)} rows={4} placeholder="متن سؤال را اینجا بنویسید… سپس «تگ خودکار» بزنید تا فصل و مبحث و سختی خودش پر شود" />
+            <Textarea value={stem} onChange={(e) => setStem(e.target.value)} rows={4} placeholder="متن سؤال را اینجا بنویسید… (از $...$ یا فرمول‌های لاتک پشتیبانی می‌شود) سپس «تگ خودکار» بزنید" />
+            {stem.trim() && (
+              <div className="rounded-md border bg-muted/40 p-2.5 text-xs text-muted-foreground space-y-1">
+                <span className="font-bold text-[11px] text-foreground">پیش‌نمایش متن و فرمول:</span>
+                <MathText text={stem} className="text-foreground block text-sm font-medium" as="div" />
+              </div>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label>گزینه‌ها</Label>

@@ -21,6 +21,7 @@ model User {
   grade        Grade    @default(GRADE_12_PHYSICS)
   avatarColor  String   @default("#0ea5a4") // teal
   parentPhone  String?
+  spotPlayerLicense String? // SpotPlayer license key for DRM protected videos
   isActive     Boolean  @default(true)
   devices      Json     @default("[]") // array of {id, name, lastSeen}
   createdAt    DateTime @default(now())
@@ -398,4 +399,19 @@ enum NotificationType {
   WARNING
   REMINDER
   ACHIEVEMENT
+}
+
+// ============================ MARKETING LEADS ============================
+
+model MarketingLead {
+  id              String   @id @default(cuid())
+  name            String
+  phone           String
+  grade           String   @default("دوازدهم")
+  weakTopicTitle  String?
+  accuracyPct     Int?
+  notes           String?
+  status          String   @default("NEW") // NEW, CALLED, ENROLLED, DISMISSED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
