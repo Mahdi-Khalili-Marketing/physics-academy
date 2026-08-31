@@ -115,6 +115,60 @@ export function ExamRunner({ examId, onExit, onViewLibrary, onOpenExam }: { exam
       .finally(() => setLoading(false))
   }, [examId])
 
+  // Restore draft if exists
+  useEffect(() => {
+    if (!examId) return
+    try {
+      const raw = localStorage.getItem(`exam_draft_${examId}`)
+      if (raw) {
+        const draft = JSON.parse(raw)
+        // Only restore if draft is less than 24 hours old
+        if (draft.attemptId && draft.answers && Date.now() - draft.timestamp < 86400000) {
+          setAttemptId(draft.attemptId)
+          setAnswers(draft.answers)
+          if (draft.flagged) setFlagged(draft.flagged)
+          if (typeof draft.currentIdx === 'number') setCurrentIdx(draft.currentIdx)
+          setStarted(true)
+          toast.info('پاسخ‌های ثبت‌شده قبلی از حافظه مرورگر بازیابی شدند.')
+        }
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, [examId])
+
+  // Auto-save draft answers to localStorage
+  useEffect(() => {
+    if (!started || !attemptId || !examId) return
+    try {
+      localStorage.setItem(`exam_draft_${examId}`, JSON.stringify({
+        attemptId,
+        answers,
+        flagged,
+        currentIdx,
+        timestamp: Date.now(),
+      }))
+    } catch {
+      // ignore storage quota errors
+    }
+  }, [started, attemptId, examId, answers, flagged, currentIdx])
+
+  // Listen to network status
+  useEffect(() => {
+    function handleOffline() {
+      toast.warning('اتصال اینترنت قطع شد! پاسخ‌های شما به صورت امن در مرورگر نگهداری می‌شوند.')
+    }
+    function handleOnline() {
+      toast.success('اتصال اینترنت مجدداً برقرار شد.')
+    }
+    window.addEventListener('offline', handleOffline)
+    window.addEventListener('online', handleOnline)
+    return () => {
+      window.removeEventListener('offline', handleOffline)
+      window.removeEventListener('online', handleOnline)
+    }
+  }, [])
+
   // Start attempt
   async function startAttempt() {
     const res = await fetch(`/api/exams/${examId}/start`, { method: 'POST' })
@@ -189,25 +243,28 @@ export function ExamRunner({ examId, onExit, onViewLibrary, onOpenExam }: { exam
   async function submit(auto = false) {
     if (!exam || !attemptId) return
     setSubmitting(true)
-    // commit current question time
+    
+    // commit current active question time synchronously into payload to avoid state lag
     const q = exam.questions[currentIdx]
+    let currentAnswers = answers
     if (q) {
       const elapsed = recordTime()
-      setAnswers((prev) => ({
-        ...prev,
+      currentAnswers = {
+        ...answers,
         [q.id]: {
-          selected: prev[q.id]?.selected ?? null,
-          timeSpentSec: (prev[q.id]?.timeSpentSec || 0) + elapsed,
+          selected: answers[q.id]?.selected ?? null,
+          timeSpentSec: (answers[q.id]?.timeSpentSec || 0) + elapsed,
         },
-      }))
+      }
+      setAnswers(currentAnswers)
     }
 
     const payload = {
       attemptId,
       answers: exam.questions.map((qq) => ({
         questionId: qq.id,
-        selected: answers[qq.id]?.selected ?? null,
-        timeSpentSec: answers[qq.id]?.timeSpentSec ?? 0,
+        selected: currentAnswers[qq.id]?.selected ?? null,
+        timeSpentSec: currentAnswers[qq.id]?.timeSpentSec ?? 0,
       })),
     }
 
@@ -222,11 +279,17 @@ export function ExamRunner({ examId, onExit, onViewLibrary, onOpenExam }: { exam
         toast.error(data.error || 'خطا در ثبت آزمون')
         return
       }
+      // Clear offline draft on successful submission
+      try {
+        localStorage.removeItem(`exam_draft_${examId}`)
+      } catch {
+        // ignore
+      }
       setResult(data)
       if (auto) toast.info('زمان آزمون تمام شد — پاسخ‌ها ثبت شدند.')
       else toast.success('آزمون ثبت شد!')
     } catch {
-      toast.error('خطا در ارتباط با سرور')
+      toast.error('خطا در برقراری ارتباط با سرور. پاسخ‌های شما ذخیره شده‌اند، لطفاً مجدداً دکمه ثبت را بزنید.')
     } finally {
       setSubmitting(false)
     }

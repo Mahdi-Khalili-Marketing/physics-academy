@@ -35,13 +35,23 @@ export function ErrorNotebook({ onBack }: { onBack: () => void }) {
   }, [])
 
   async function toggleResolved(id: string, resolved: boolean) {
+    // Optimistic update
     setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, resolved } : e)))
-    await fetch('/api/student/error-notebook', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, resolved }),
-    })
-    toast.success(resolved ? 'به‌عنوان مرورشده علامت زده شد' : 'دوباره به فهرست بازگشت')
+    try {
+      const res = await fetch('/api/student/error-notebook', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, resolved }),
+      })
+      if (!res.ok) {
+        throw new Error('Server error')
+      }
+      toast.success(resolved ? 'به‌عنوان مرورشده علامت زده شد' : 'دوباره به فهرست بازگشت')
+    } catch {
+      // Rollback on network or server failure
+      setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, resolved: !resolved } : e)))
+      toast.error('خطا در ذخیره‌سازی وضعیت. اتصال اینترنت را بررسی کنید.')
+    }
   }
 
   const unresolved = entries.filter((e) => !e.resolved)

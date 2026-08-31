@@ -74,7 +74,33 @@ function parseMathSegments(rawText: string): Segment[] {
   return segments
 }
 
-export function MathText({ text, className = '', as: Component = 'span' }: MathTextProps) {
+// Module-level in-memory cache for rendered KaTeX formulas to eliminate duplicate CPU parsing
+const katexCache = new Map<string, string>()
+
+function renderKatexSafe(content: string, isBlock: boolean): string {
+  const cacheKey = `${isBlock ? 'B' : 'I'}:${content}`
+  const cached = katexCache.get(cacheKey)
+  if (cached) return cached
+
+  try {
+    const rendered = katex.renderToString(content, {
+      displayMode: isBlock,
+      throwOnError: false,
+      output: 'html',
+    })
+    // Limit cache size to 500 items to prevent unbounded memory growth
+    if (katexCache.size > 500) {
+      const firstKey = katexCache.keys().next().value
+      if (firstKey) katexCache.delete(firstKey)
+    }
+    katexCache.set(cacheKey, rendered)
+    return rendered
+  } catch {
+    return content
+  }
+}
+
+export const MathText = React.memo(function MathText({ text, className = '', as: Component = 'span' }: MathTextProps) {
   const segments = useMemo(() => parseMathSegments(text || ''), [text])
 
   if (!text) return null
@@ -87,23 +113,14 @@ export function MathText({ text, className = '', as: Component = 'span' }: MathT
         }
 
         const isBlock = seg.type === 'block-math'
-        let renderedHtml = ''
-        try {
-          renderedHtml = katex.renderToString(seg.content, {
-            displayMode: isBlock,
-            throwOnError: false,
-            output: 'html',
-          })
-        } catch {
-          renderedHtml = seg.content
-        }
+        const renderedHtml = renderKatexSafe(seg.content, isBlock)
 
         if (isBlock) {
           return (
             <span
               key={idx}
               dir="ltr"
-              className="block my-2 text-center overflow-x-auto py-1"
+              className="block my-2 text-center overflow-x-auto py-1 max-w-full"
               dangerouslySetInnerHTML={{ __html: renderedHtml }}
             />
           )
@@ -113,11 +130,11 @@ export function MathText({ text, className = '', as: Component = 'span' }: MathT
           <span
             key={idx}
             dir="ltr"
-            className="inline-block mx-1 align-baseline select-text"
+            className="inline-block mx-1 align-baseline select-text font-normal unicode-bidi-isolate"
             dangerouslySetInnerHTML={{ __html: renderedHtml }}
           />
         )
       })}
     </Component>
   )
-}
+})
