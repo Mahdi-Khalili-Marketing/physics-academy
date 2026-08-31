@@ -24,7 +24,10 @@ import {
   ArrowRight,
   TrendingUp,
   HeartHandshake,
+  Sun,
+  Moon,
 } from 'lucide-react'
+import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -227,6 +230,7 @@ export function LandingPage() {
   }
 
   const currentRoleData = ROLES_DATA[selectedRole]
+  const { theme, setTheme } = useTheme()
 
   return (
     <div className="min-h-screen bg-background text-foreground mesh-bg">
@@ -234,22 +238,31 @@ export function LandingPage() {
       <header className="sticky top-0 z-40 glass-panel">
         <div className="mx-auto max-w-6xl px-4 lg:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-primary/15 text-primary flex items-center justify-center shadow-xs">
+            <div className="h-10 w-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shadow-xs">
               <Atom className="h-6 w-6 animate-pulse" />
             </div>
             <div>
-              <span className="font-bold text-base leading-none block">آکادمی تخصصی فیزیک</span>
+              <span className="font-bold text-base leading-none block text-foreground">آکادمی تخصصی فیزیک</span>
               <span className="text-[11px] text-muted-foreground hidden sm:block">سیستم هوشمند تشخیص و نسخه کنکور</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex text-xs">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex text-xs text-muted-foreground hover:text-foreground">
               <a href="#how-it-works">نحوه کارکرد</a>
             </Button>
-            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex text-xs">
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex text-xs text-muted-foreground hover:text-foreground">
               <a href="#features">امکانات</a>
             </Button>
-            <Button asChild size="sm" className="gap-1.5 shadow-sm">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              aria-label="تغییر حالت شب و روز"
+              className="h-9 w-9 rounded-lg hover:bg-secondary border border-border text-foreground"
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-700" />}
+            </Button>
+            <Button asChild size="sm" className="gap-1.5 shadow-xs font-bold text-xs h-9 px-3.5 bg-primary text-primary-foreground hover:bg-primary/90">
               <Link href="/login">
                 ورود به سامانه
                 <ArrowLeft className="h-4 w-4" />

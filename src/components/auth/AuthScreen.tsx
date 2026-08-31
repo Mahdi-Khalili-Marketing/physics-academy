@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Atom, Lock, Phone, ArrowLeft, GraduationCap, Users, UserCog, Sparkles, ShieldCheck } from 'lucide-react'
+import { Atom, Lock, Phone, ArrowLeft, GraduationCap, Users, UserCog, Sparkles, ShieldCheck, Sun, Moon } from 'lucide-react'
+import { useTheme } from '@/components/theme-provider'
 import { useAppStore } from '@/lib/store'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -46,6 +47,8 @@ export function AuthScreen() {
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [loadingDemo, setLoadingDemo] = useState<string | null>(null)
+  const { theme, setTheme } = useTheme()
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -102,14 +105,25 @@ export function AuthScreen() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 mesh-bg relative">
-      {/* Back to Home Button */}
-      <Link
-        href="/"
-        className="absolute top-4 right-4 sm:top-6 sm:right-6 inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors bg-background/80 backdrop-blur px-3 py-1.5 rounded-full border shadow-xs"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        <span>بازگشت به صفحه اصلی</span>
-      </Link>
+      {/* Top Actions: Theme Switcher & Back to Home */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          aria-label="تغییر حالت شب و روز"
+          className="h-8 w-8 rounded-lg hover:bg-secondary border border-border/80 bg-background/80 backdrop-blur shadow-2xs text-foreground"
+        >
+          {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-700" />}
+        </Button>
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors bg-background/80 backdrop-blur px-3 py-1.5 rounded-lg border border-border shadow-2xs"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>بازگشت به صفحه اصلی</span>
+        </Link>
+      </div>
 
       <div className="grid lg:grid-cols-12 gap-8 max-w-5xl w-full items-center">
         {/* Brand Showcase */}
