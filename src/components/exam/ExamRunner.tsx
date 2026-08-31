@@ -679,30 +679,70 @@ function difficultyLabel(d: string) {
 // ============ EXAM RESULT VIEW ============
 function ExamResult({ result, exam, onExit, onViewLibrary, onOpenExam }: { result: SubmitResult; exam: ExamData['exam']; onExit: () => void; onViewLibrary: (videoId?: string) => void; onOpenExam?: (id: string) => void }) {
   const { attempt, diagnosis, prescription, remedial } = result
-  const scoreColor = attempt.score >= 14 ? 'text-emerald-600' : attempt.score >= 10 ? 'text-amber-600' : 'text-red-600'
+  const pctScore = Math.max(0, Math.round((attempt.score / 20) * 100))
+  const scoreColor = attempt.score >= 14 ? 'text-emerald-600 dark:text-emerald-400' : attempt.score >= 10 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'
 
   async function startRemedial(prescriptionId: string) {
     const res = await fetch(`/api/student/prescriptions/${prescriptionId}/remedial`, { method: 'POST' })
     const data = await res.json()
     if (!res.ok) {
-      toast.error(data.error || 'خطا در ساخت آزمون مجدد')
+      toast.error(data.error || 'خطا در ساخت آزمونک تسلط')
       return
     }
     if (onOpenExam) onOpenExam(data.examId)
   }
 
   return (
-    <div className="max-w-3xl mx-auto page-enter space-y-6">
-      <Card className="border-0 hero-gradient">
-        <CardContent className="p-8 text-center">
-          <div className="text-sm text-muted-foreground mb-2">{exam.title}</div>
-          <div className={cn('text-6xl font-bold', scoreColor)}>{toFaNumber(attempt.score)}</div>
-          <div className="text-muted-foreground mt-1">از ۲۰</div>
-          <div className="flex justify-center gap-4 mt-6">
-            <Stat icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />} label="صحیح" value={toFa(attempt.correctCount)} />
-            <Stat icon={<XCircle className="h-4 w-4 text-red-600" />} label="غلط" value={toFa(attempt.wrongCount)} />
-            <Stat icon={<MinusCircle className="h-4 w-4 text-amber-600" />} label="نزده" value={toFa(attempt.blankCount)} />
-            <Stat icon={<Clock className="h-4 w-4 text-muted-foreground" />} label="زمان" value={formatDuration(attempt.durationSec)} />
+    <div className="max-w-3xl mx-auto page-enter space-y-5" role="region" aria-label="کارنامه و تحلیل آزمون">
+      {/* Header Score Card */}
+      <Card className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+        <CardContent className="p-6 sm:p-8 text-center space-y-4">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-secondary/80 border border-border text-xs font-semibold text-muted-foreground">
+            <span>آزمون: {exam.title}</span>
+          </div>
+
+          <div>
+            <div className={cn('text-5xl sm:text-6xl font-extrabold tracking-tight font-mono', scoreColor)}>
+              {toFaNumber(attempt.score, 1)}
+              <span className="text-lg font-normal text-muted-foreground mr-1.5">/ ۲۰</span>
+            </div>
+            <div className="text-xs font-bold text-muted-foreground mt-1">
+              درصد تراز کنکور: <strong className="text-foreground font-mono">{toFa(pctScore)}٪</strong>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-border">
+            <div className="p-2.5 rounded-lg bg-secondary/40 border border-border text-center">
+              <div className="flex items-center justify-center gap-1 text-emerald-600 font-bold text-sm">
+                <CheckCircle2 className="h-4 w-4" />
+                <span>{toFa(attempt.correctCount)}</span>
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">پاسخ صحیح</div>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-secondary/40 border border-border text-center">
+              <div className="flex items-center justify-center gap-1 text-red-600 font-bold text-sm">
+                <XCircle className="h-4 w-4" />
+                <span>{toFa(attempt.wrongCount)}</span>
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">پاسخ غلط</div>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-secondary/40 border border-border text-center">
+              <div className="flex items-center justify-center gap-1 text-amber-600 font-bold text-sm">
+                <MinusCircle className="h-4 w-4" />
+                <span>{toFa(attempt.blankCount)}</span>
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">نزده (بی‌پاسخ)</div>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-secondary/40 border border-border text-center">
+              <div className="flex items-center justify-center gap-1 text-muted-foreground font-bold text-sm">
+                <Clock className="h-4 w-4" />
+                <span>{formatDuration(attempt.durationSec)}</span>
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">مدت زمان آزمون</div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -711,7 +751,7 @@ function ExamResult({ result, exam, onExit, onViewLibrary, onOpenExam }: { resul
       {remedial && (
         <div
           className={cn(
-            'rounded-lg border p-4 flex items-start gap-3',
+            'rounded-xl border p-4 flex items-start gap-3.5',
             remedial.passed
               ? 'bg-emerald-500/10 border-emerald-500/30'
               : 'bg-amber-500/10 border-amber-500/30',
@@ -722,49 +762,51 @@ function ExamResult({ result, exam, onExit, onViewLibrary, onOpenExam }: { resul
           ) : (
             <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
           )}
-          <div>
-            <div className={cn('font-bold', remedial.passed ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300')}>
-              {remedial.passed ? 'ضعف برطرف شد! 🎉' : 'هنوز به تسلط نرسیده‌ای'}
+          <div className="space-y-1">
+            <div className={cn('font-bold text-sm', remedial.passed ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300')}>
+              {remedial.passed ? 'ضعف درسی با موفقیت درمان شد! 🎉' : 'هنوز به حد تسلط نرسیده‌اید'}
             </div>
-            <div className="text-sm text-muted-foreground mt-1">
+            <div className="text-xs text-muted-foreground leading-relaxed">
               {remedial.passed
-                ? 'این مبحث در نسخهٔ تو «برطرف‌شده» ثبت شد. همین‌طور ادامه بده.'
-                : `دقت این آزمون ${toFa(Math.round(remedial.ratio * 100))}٪ بود (حد قبولی ${toFa(70)}٪). ویدیوی تجویزشده را دوباره ببین و مجدد تلاش کن.`}
+                ? 'این مبحث در نقشه تسلط شما به رنگ سبز ثبت گردید. به سمت مبحث بعدی پیش بروید.'
+                : `درصد این آزمونک ${toFa(Math.round(remedial.ratio * 100))}٪ بود (حد تسلط ${toFa(70)}٪). ویدیوی تجویزشده در اسپات‌پلیر را مجدداً مشاهده کرده و آزمونک را تکرار کنید.`}
             </div>
           </div>
         </div>
       )}
 
       {/* Diagnosis */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-purple-600" />
-            تشخیص — ریشه هر غلط
+      <Card className="bg-card border border-border rounded-xl shadow-xs">
+        <CardHeader className="pb-3 border-b border-border">
+          <CardTitle className="flex items-center gap-2 text-base font-bold">
+            <Brain className="h-4 w-4 text-primary" />
+            تشخیص هوشمند — ریشه خطاهای تستی
           </CardTitle>
-          <CardDescription>مباحثی که در آن‌ها ضعف داشتید</CardDescription>
+          <CardDescription className="text-xs">
+            تحلیل میلی‌متری مباحثی که در این آزمون در آن‌ها با چالش مواجه شدید
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           {diagnosis.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-emerald-500" />
-              <p>ضعف قابل‌توجهی شناسایی نشد. آفرین!</p>
+            <div className="text-center py-6 text-muted-foreground space-y-2">
+              <CheckCircle2 className="h-8 w-8 mx-auto text-emerald-500" />
+              <p className="text-xs font-semibold text-foreground">هیچ ضعف تستی قابل‌توجهی شناسایی نشد. عملکرد شما عالی است!</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {diagnosis.map((d) => {
                 const pct = Math.round((d.wrong / d.total) * 100)
                 return (
-                  <div key={d.topicId} className="flex items-center gap-3 p-3 rounded-lg bg-red-500/5 border border-red-500/20">
-                    <div className="flex-1">
-                      <div className="font-medium">{d.topicTitle}</div>
-                      <div className="text-xs text-muted-foreground mt-1">
+                  <div key={d.topicId} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-secondary/40 border border-border">
+                    <div className="flex-1 space-y-0.5">
+                      <div className="font-semibold text-xs sm:text-sm text-foreground">{d.topicTitle}</div>
+                      <div className="text-[11px] text-muted-foreground">
                         {toFa(d.wrong)} غلط{d.blank > 0 ? ` و ${toFa(d.blank)} بی‌پاسخ` : ''} از {toFa(d.total)} سؤال
                       </div>
                     </div>
                     <div className="text-left">
-                      <div className="text-xl font-bold text-red-600">{toFa(pct)}٪</div>
-                      <div className="text-[10px] text-muted-foreground">خطا</div>
+                      <div className="text-base font-bold text-red-600 font-mono">{toFa(pct)}٪</div>
+                      <div className="text-[10px] text-muted-foreground">نرخ خطا</div>
                     </div>
                   </div>
                 )
@@ -776,29 +818,33 @@ function ExamResult({ result, exam, onExit, onViewLibrary, onOpenExam }: { resul
 
       {/* Prescription */}
       {prescription.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-primary" />
-              تجویز — مسیر رفع ضعف
+        <Card className="bg-card border border-border rounded-xl shadow-xs">
+          <CardHeader className="pb-3 border-b border-border">
+            <CardTitle className="flex items-center gap-2 text-base font-bold">
+              <Target className="h-4 w-4 text-primary" />
+              نسخه تجویزی — مسیر جبران و درمان
             </CardTitle>
-            <CardDescription>برای رفع هر ضعف، درس مرتبط را ببینید</CardDescription>
+            <CardDescription className="text-xs">
+              برای بستن هر نقطه ضعف، ویدیوی مرتبط را در اسپات‌پلیر مشاهده کرده و سپس آزمونک تسلط را شرکت کنید
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="pt-4 space-y-2.5">
             {prescription.map((p) => (
-              <div key={p.topicId} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50">
-                <BookOpen className="h-5 w-5 text-primary shrink-0" />
-                <div className="flex-1">
-                  <div className="font-medium text-sm">{p.videoTitle}</div>
-                  <div className="text-xs text-muted-foreground">{p.reason || `برای رفع ضعف در: ${p.topicTitle}`}</div>
+              <div key={p.topicId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-lg border border-border bg-background/50 hover:bg-secondary/40 transition-colors">
+                <div className="flex items-start gap-3">
+                  <BookOpen className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <div className="font-semibold text-xs sm:text-sm text-foreground">{p.videoTitle}</div>
+                    <div className="text-[11px] text-muted-foreground">{p.reason || `رفع ضعف در مبحث: ${p.topicTitle}`}</div>
+                  </div>
                 </div>
-                <div className="flex gap-2 shrink-0">
-                  <Button size="sm" variant="outline" onClick={() => onViewLibrary(p.videoId)} className="gap-1">
-                    <PlayCircle className="h-4 w-4" /> مشاهده
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button size="sm" variant="outline" onClick={() => onViewLibrary(p.videoId)} className="h-8 px-3 text-xs gap-1.5 border-border">
+                    <PlayCircle className="h-3.5 w-3.5 text-primary" /> مشاهده ویدیو
                   </Button>
                   {onOpenExam && (
-                    <Button size="sm" variant="ghost" onClick={() => startRemedial(p.prescriptionId)} className="gap-1">
-                      <RefreshCcw className="h-4 w-4" /> آزمون مجدد
+                    <Button size="sm" onClick={() => startRemedial(p.prescriptionId)} className="h-8 px-3 text-xs gap-1.5 bg-primary text-primary-foreground font-bold shadow-2xs">
+                      <RefreshCcw className="h-3.5 w-3.5" /> آزمونک تسلط
                     </Button>
                   )}
                 </div>
@@ -808,21 +854,13 @@ function ExamResult({ result, exam, onExit, onViewLibrary, onOpenExam }: { resul
         </Card>
       )}
 
-      {/* Loop hint */}
-      <div className="rounded-lg bg-primary/10 border border-primary/30 p-4 text-sm flex items-start gap-3">
-        <RefreshCcw className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-        <div>
-          <div className="font-bold text-primary">چرخه تسلط</div>
-          <div className="text-muted-foreground mt-1">
-            پس از دیدن ویدیوهای تجویزشده، دوباره این آزمون را بدهید تا از رفع ضعف مطمئن شوید.
-            این چرخه تا رسیدن به تسلط تکرار می‌شود.
-          </div>
-        </div>
-      </div>
-
-      <div className="flex gap-2">
-        <Button onClick={onExit} variant="outline" className="gap-2">
+      {/* Action footer */}
+      <div className="flex items-center justify-between pt-2">
+        <Button onClick={onExit} variant="outline" className="gap-1.5 text-xs h-10 px-4 rounded-lg border-border">
           <ChevronRight className="h-4 w-4" /> بازگشت به فهرست آزمون‌ها
+        </Button>
+        <Button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} variant="ghost" className="text-xs text-muted-foreground">
+          رفتن به بالای صفحه ↑
         </Button>
       </div>
     </div>

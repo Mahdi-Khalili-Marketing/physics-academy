@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useTheme } from '@/components/theme-provider'
 import {
   GraduationCap,
   CheckCircle2,
@@ -23,6 +24,8 @@ import {
   Layers,
   ArrowUpRight,
   PhoneCall,
+  Sun,
+  Moon,
 } from 'lucide-react'
 import { toFa, toFaNumber, faDate, formatDuration } from '@/lib/fa'
 import { toast } from 'sonner'
@@ -88,6 +91,7 @@ type ReportData = {
 export default function ParentReportPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const id = resolvedParams.id
+  const { theme, setTheme } = useTheme()
 
   const [data, setData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -125,23 +129,23 @@ export default function ParentReportPage({ params }: { params: Promise<{ id: str
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-muted/20 p-4 md:p-8 max-w-4xl mx-auto space-y-6">
-        <Skeleton className="h-28 rounded-2xl" />
+      <div className="min-h-screen bg-background p-4 md:p-8 max-w-4xl mx-auto space-y-6">
+        <Skeleton className="h-28 rounded-xl" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-24 rounded-xl" />
           ))}
         </div>
-        <Skeleton className="h-64 rounded-2xl" />
-        <Skeleton className="h-48 rounded-2xl" />
+        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-48 rounded-xl" />
       </div>
     )
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-muted/20">
-        <Card className="max-w-md w-full text-center p-6 space-y-4">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <Card className="max-w-md w-full text-center p-6 space-y-4 bg-card border border-border rounded-xl shadow-sm">
           <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
           <h2 className="text-xl font-bold">گزارش در دسترس نیست</h2>
           <p className="text-sm text-muted-foreground">{error || 'اطلاعاتی برای این دانش‌آموز یافت نشد.'}</p>
@@ -159,63 +163,72 @@ export default function ParentReportPage({ params }: { params: Promise<{ id: str
       : 'text-red-600 dark:text-red-400'
 
   return (
-    <div className="min-h-screen bg-slate-50/50 dark:bg-background text-foreground print:bg-white print:p-0">
+    <div className="min-h-screen bg-background text-foreground print:bg-white print:p-0 page-enter">
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur print:hidden px-4 py-3">
+      <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur print:hidden px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-lg bg-primary/15 text-primary flex items-center justify-center font-bold">
               <GraduationCap className="h-5 w-5" />
             </div>
             <div>
               <div className="text-sm font-bold leading-tight">آکادمی تخصصی فیزیک کنکور</div>
-              <div className="text-[11px] text-muted-foreground">سامانه گزارش هوشمند والدین</div>
+              <div className="text-[11px] text-muted-foreground">سامانه گزارش هوشمند اولیاء · استاد موقوفه</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={handleShare} className="gap-1.5 text-xs">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              aria-label="تغییر حالت شب و روز"
+              className="h-8 w-8 rounded-lg hover:bg-secondary border border-border text-foreground"
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-700" />}
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleShare} className="gap-1.5 text-xs h-8 px-2.5 rounded-lg border-border">
               <Share2 className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">اشتراک‌گذاری</span>
             </Button>
-            <Button size="sm" variant="default" onClick={handlePrint} className="gap-1.5 text-xs">
+            <Button size="sm" onClick={handlePrint} className="gap-1.5 text-xs h-8 px-3 rounded-lg bg-primary text-primary-foreground font-bold hover:bg-primary/90">
               <Printer className="h-3.5 w-3.5" />
-              <span>چاپ / PDF</span>
+              <span>چاپ کارنامه</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
+      <main className="max-w-4xl mx-auto p-4 sm:p-6 space-y-5">
         {/* Student Profile Card */}
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-primary/10 via-primary/5 to-background border-r-4 border-r-primary">
-          <CardContent className="p-6">
+        <Card className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+          <CardContent className="p-5 sm:p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3.5">
                 <div
-                  className="h-14 w-14 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-sm shrink-0"
-                  style={{ backgroundColor: student.avatarColor || '#0ea5a4' }}
+                  className="h-12 w-12 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-2xs shrink-0"
+                  style={{ backgroundColor: student.avatarColor || '#0284c7' }}
                 >
                   {student.name.charAt(0)}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h1 className="text-xl sm:text-2xl font-bold">{student.name}</h1>
-                    <Badge variant="secondary" className="text-xs bg-primary/15 text-primary border-0">
+                    <h1 className="text-xl font-extrabold text-foreground">{student.name}</h1>
+                    <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/25">
                       {student.grade}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    تاریخ صدور گزارش: {faDate(new Date(data.generatedAt))} · وضعیت تحصیلی: فعال در دوره کنکور
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    تاریخ صدور گزارش: {faDate(new Date(data.generatedAt))} · پایش مستمر وضعیت تا کنکور
                   </p>
                 </div>
               </div>
 
               {/* Overall Score Badge */}
-              <div className="bg-background/80 backdrop-blur rounded-xl border p-3 text-center min-w-[130px] self-stretch sm:self-auto">
-                <div className="text-[11px] text-muted-foreground">میانگین نمره فیزیک</div>
-                <div className={cn('text-3xl font-extrabold mt-0.5', scoreLevelColor)}>
+              <div className="bg-secondary/40 rounded-xl border border-border p-3 text-center min-w-[140px] self-stretch sm:self-auto space-y-0.5">
+                <div className="text-[11px] text-muted-foreground font-medium">میانگین تراز فیزیک</div>
+                <div className={cn('text-3xl font-extrabold font-mono', scoreLevelColor)}>
                   {toFaNumber(summary.avgScore, 1)}
-                  <span className="text-xs text-muted-foreground font-normal mr-1">از ۲۰</span>
+                  <span className="text-xs text-muted-foreground font-normal mr-1 font-sans">/ ۲۰</span>
                 </div>
               </div>
             </div>

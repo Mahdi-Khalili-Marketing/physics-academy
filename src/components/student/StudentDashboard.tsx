@@ -119,48 +119,47 @@ export function StudentDashboard({
   const currentDayPlan = TEN_DAY_CAMP.find((c) => c.day === activeCampDay) || TEN_DAY_CAMP[3]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-enter" role="main" aria-label="داشبورد تحلیلی دانش‌آموز">
       {/* Hero Header */}
-      <Card className="glass-card shadow-md border-primary/20 overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-        <CardContent className="p-6 lg:p-8 relative z-10">
+      <Card className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+        <CardContent className="p-6 sm:p-7">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6 justify-between">
             <div className="space-y-3">
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="inline-flex items-center gap-2 rounded-full border bg-background/80 backdrop-blur px-3 py-1 text-xs text-primary font-semibold shadow-xs">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>دوره آمادگی فیزیک کنکور</span>
+                <div className="inline-flex items-center gap-1.5 rounded-md border border-border bg-secondary/60 px-2.5 py-1 text-xs text-muted-foreground font-medium">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <span>دوره تخصصی فیزیک کنکور · استاد موقوفه</span>
                 </div>
-                <div className="inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 px-3 py-1 rounded-full text-xs font-bold shadow-2xs">
-                  <Flame className="h-3.5 w-3.5 text-amber-500 fill-amber-500 animate-pulse" />
+                <div className="inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 px-2.5 py-1 rounded-md text-xs font-bold">
+                  <Flame className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
                   <span>استمرار مطالعه: ۴ روز پیاپی 🔥</span>
                 </div>
               </div>
-              <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
                 سلام {data.user.name.split(' ')[0]} عزیز 👋
               </h1>
               <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
-                امروز <span className="font-bold text-primary">{toFa(data.stats.leitnerDue)} کارت لایتنر</span> برای مرور آماده است
-                و <span className="font-bold text-amber-600 dark:text-amber-400">{toFa(data.stats.errorsUnresolved)} اشتباه</span> در انتظار بررسی در دفترچه اشتباهات داری.
+                امروز <strong className="text-primary">{toFa(data.stats.leitnerDue)} کارت لایتنر</strong> برای مرور آماده است
+                و <strong className="text-amber-600 dark:text-amber-400">{toFa(data.stats.errorsUnresolved)} تست</strong> در انتظار بررسی در دفترچه اشتباهات داری.
               </p>
-              <div className="pt-2 flex flex-wrap gap-2.5">
-                <Button onClick={() => onOpenExam()} className="gap-2 shadow-xs h-10 px-4">
-                  <Target className="h-4 w-4" /> شروع آزمون جدید
+              <div className="pt-1 flex flex-wrap gap-2.5">
+                <Button onClick={() => onOpenExam()} className="gap-2 shadow-xs h-10 px-4 rounded-lg bg-primary text-primary-foreground font-bold text-xs hover:bg-primary/90">
+                  <Target className="h-4 w-4" /> شروع آزمونک جدید
                 </Button>
-                <Button onClick={onOpenLibrary} variant="outline" className="gap-2 h-10 px-4">
+                <Button onClick={onOpenLibrary} variant="outline" className="gap-2 h-10 px-4 rounded-lg text-xs border-border bg-secondary/40 text-foreground hover:bg-secondary">
                   <BookOpen className="h-4 w-4" /> کتابخانه ویدیوها
                 </Button>
               </div>
             </div>
 
             {/* Score & Progress Badge */}
-            <div className="bg-background/80 backdrop-blur rounded-2xl border p-4 text-center min-w-[160px] shadow-xs self-stretch sm:self-auto space-y-1">
-              <div className="text-xs text-muted-foreground font-medium">میانگین نمره کنکور</div>
-              <div className="text-4xl font-black text-primary stat-num">{toFaNumber(data.stats.avgScore, 1)}</div>
+            <div className="bg-secondary/40 rounded-xl border border-border p-4 text-center min-w-[170px] shadow-2xs self-stretch sm:self-auto space-y-1">
+              <div className="text-xs text-muted-foreground font-medium">میانگین تراز آزمونک‌ها</div>
+              <div className="text-4xl font-extrabold text-primary font-mono stat-num">{toFaNumber(data.stats.avgScore, 1)}</div>
               <div className="text-[11px] text-muted-foreground">از ۲۰ · {toFa(data.stats.totalAttempts)} آزمونک ثبت‌شده</div>
-              <div className="pt-1.5 text-[10px] text-emerald-600 font-semibold flex items-center justify-center gap-1">
-                <CheckCircle2 className="h-3 w-3" />
-                <span>رشد +۱.۸ نمره در ماه اخیر</span>
+              <div className="pt-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center justify-center gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                <span>رشد +۱.۸ نمره در ماه جاری</span>
               </div>
             </div>
           </div>
@@ -168,29 +167,29 @@ export function StudentDashboard({
       </Card>
 
       {/* 10-Day Intensive Camp Interactive Tracker */}
-      <Card className="border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-background shadow-md overflow-hidden">
-        <CardContent className="p-4 sm:p-6 space-y-4">
+      <Card className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+        <CardContent className="p-5 sm:p-6 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Badge className="bg-primary text-primary-foreground text-xs font-bold px-2.5 py-0.5">
-                🚀 اردوی ۱۰ روزه کنکور
-              </Badge>
-              <span className="font-bold text-sm">
+              <span className="bg-primary/10 text-primary border border-primary/20 text-xs font-bold px-2.5 py-0.5 rounded">
+                نقشه اردوی ۱۰ روزه کنکور
+              </span>
+              <span className="font-bold text-sm text-foreground">
                 روز انتخاب‌شده: روز {toFa(activeCampDay)} از ۱۰ ({currentDayPlan.title})
               </span>
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground font-medium">
               پیشرفت کل اردو: <strong className="text-foreground">۴۰٪</strong> ({toFa(4)} روز از {toFa(10)} روز)
             </div>
           </div>
           
           {/* Progress Bar */}
-          <div className="w-full bg-muted/60 h-2.5 rounded-full overflow-hidden">
+          <div className="w-full bg-secondary/80 h-2 rounded-full overflow-hidden border border-border/50">
             <div className="bg-primary h-full rounded-full transition-all" style={{ width: '40%' }} />
           </div>
 
           {/* 10 Days Pills - Clickable */}
-          <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5 pt-1">
+          <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5 pt-1" role="tablist" aria-label="روزهای اردوی ۱۰ روزه">
             {TEN_DAY_CAMP.map((c) => {
               const isSelected = c.day === activeCampDay
               const isPassed = c.day < 4
@@ -199,35 +198,38 @@ export function StudentDashboard({
                 <button
                   key={c.day}
                   type="button"
+                  role="tab"
+                  aria-selected={isSelected}
+                  aria-label={`روز ${c.day} - ${c.grade}`}
                   onClick={() => setActiveCampDay(c.day)}
                   className={cn(
-                    'text-center p-2 rounded-xl border text-[11px] transition-all cursor-pointer press-scale',
-                    isSelected && 'ring-2 ring-primary ring-offset-2 bg-primary text-primary-foreground font-black shadow-md border-primary',
-                    !isSelected && isPassed && 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold hover:bg-emerald-500/25',
-                    !isSelected && isCurrent && 'bg-primary/20 border-primary/40 text-primary font-bold hover:bg-primary/30',
-                    !isSelected && !isPassed && !isCurrent && 'bg-muted/40 text-muted-foreground border-border/40 hover:bg-muted/70',
+                    'text-center p-2 rounded-lg border text-xs transition-all cursor-pointer font-medium',
+                    isSelected && 'ring-2 ring-primary bg-primary text-primary-foreground font-bold shadow-xs border-primary',
+                    !isSelected && isPassed && 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold hover:bg-emerald-500/20',
+                    !isSelected && isCurrent && 'bg-primary/10 border-primary/30 text-primary font-bold hover:bg-primary/20',
+                    !isSelected && !isPassed && !isCurrent && 'bg-secondary/40 text-muted-foreground border-border hover:bg-secondary',
                   )}
                 >
                   <div className="font-bold">روز {toFa(c.day)}</div>
-                  <div className="text-[9px] opacity-80 mt-0.5">{c.grade}</div>
+                  <div className="text-[10px] opacity-80 mt-0.5">{c.grade}</div>
                 </button>
               )
             })}
           </div>
 
           {/* Selected Day Action Box */}
-          <div className="mt-2 p-3.5 rounded-xl bg-background/80 border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="space-y-1">
+          <div className="mt-2 p-4 rounded-xl bg-secondary/40 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-[10px]">
+                <Badge variant="outline" className="text-[10px] bg-background">
                   پایه {currentDayPlan.grade}
                 </Badge>
-                <strong className="text-foreground">{currentDayPlan.title}</strong>
+                <strong className="text-foreground text-sm">{currentDayPlan.title}</strong>
               </div>
               <div className="text-muted-foreground text-[11px] flex flex-wrap gap-x-3 gap-y-1">
                 {currentDayPlan.topics.map((t, idx) => (
                   <span key={idx} className="flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                     {t}
                   </span>
                 ))}
@@ -238,15 +240,15 @@ export function StudentDashboard({
                 size="sm"
                 variant="outline"
                 onClick={onOpenLibrary}
-                className="h-8 text-xs gap-1 border-primary/30"
+                className="h-8 text-xs gap-1.5 border-border bg-background"
               >
-                <BookOpen className="h-3.5 w-3.5" />
-                ویدیو ({currentDayPlan.videoDurationMin} دقیقه)
+                <BookOpen className="h-3.5 w-3.5 text-primary" />
+                ویدیو ({toFa(currentDayPlan.videoDurationMin)} دقیقه)
               </Button>
               <Button
                 size="sm"
                 onClick={() => onOpenExam()}
-                className="h-8 text-xs gap-1 shadow-xs"
+                className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground font-bold shadow-2xs hover:bg-primary/90"
               >
                 <Target className="h-3.5 w-3.5" />
                 شروع آزمونک روز {toFa(activeCampDay)}
