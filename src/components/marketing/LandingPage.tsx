@@ -279,45 +279,54 @@ export function LandingPage() {
           <Reveal className="lg:col-span-6 space-y-5">
             <div className="inline-flex items-center gap-2 rounded-md border border-border bg-secondary/60 px-3 py-1 text-xs font-medium text-muted-foreground shadow-2xs">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-              <span>دوره جامع جمع‌بندی فیزیک کنکور سراسری</span>
+              <span>متد رتبه‌سازی فیزیک کنکور · استاد موقوفه + همراهی هوشمند</span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-[40px] font-extrabold leading-[1.32] tracking-tight text-foreground">
-              یادگیری و تسلط بر فیزیک کنکور
-              <span className="block text-primary mt-1">در ۱۰ روز با هوش مصنوعی</span>
+            <h1 className="text-3xl sm:text-4xl lg:text-[38px] font-extrabold leading-[1.32] tracking-tight text-foreground">
+              روش تدریس رتبه‌های برتر استاد موقوفه؛
+              <span className="block text-primary mt-1.5">این‌بار با تحلیل هوشمند و پیگیری روزانه تا کنکور</span>
             </h1>
 
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-xl">
-              <span className="font-semibold text-foreground">۳ روز پایه دهم + ۳ روز پایه یازدهم + ۴ روز پایه دوازدهم</span>
+              <span className="font-semibold text-foreground">از درصد منفی تا ارتقا به بالای ۸۰٪ · ویژه دانش‌آموزان و اولیا</span>
               <br />
-              سیستم هوشمند پس از هر آزمونک، ریشه دقیق افت درصد را شناسایی کرده و با صدور نسخه تجویزی، تسلط ۱۰۰٪ بر فیزیک را در ۱۰ روز تضمین می‌کند.
+              به جای ساعت‌ها فیلم دیدن بدون پیشرفت؛ ریشه اشتباهات تستی شما استخراج شده و روند تسلط دانش‌آموز روزانه پایش و به والدین گزارش می‌شود.
             </p>
 
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <Button asChild size="lg" className="gap-2 shadow-sm hover:shadow-md transition-all h-11 px-5 rounded-lg text-xs sm:text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90">
-                <Link href="/login">
-                  ورود به پنل آموزشگاه
-                  <ArrowLeft className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="h-11 px-5 rounded-lg text-xs sm:text-sm font-medium border-border bg-secondary/40 text-foreground hover:bg-secondary">
-                <a href="#camp-roadmap">مشاهده نقشه ۱۰ روزه</a>
-              </Button>
+            <div className="space-y-2 pt-1">
+              <div className="flex flex-wrap items-center gap-3">
+                <Button asChild size="lg" className="gap-2 shadow-sm hover:shadow-md transition-all h-12 px-6 rounded-lg text-xs sm:text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90">
+                  <Link href="/login">
+                    شروع سنجش رایگان فیزیک (۵ سوال کوتاه)
+                    <ArrowLeft className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="h-12 px-5 rounded-lg text-xs sm:text-sm font-medium border-border bg-secondary/40 text-foreground hover:bg-secondary">
+                  <a href="#camp-roadmap">مشاهده نقشه ۱۰ روزه</a>
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground font-medium flex items-center gap-2 pt-0.5">
+                <span>⏱️ آزمونک ۳ دقیقه‌ای</span>
+                <span>·</span>
+                <span>کاملاً رایگان و بدون نیاز به پرداخت</span>
+                <span>·</span>
+                <span>صدور آنی نسخه درمان ضعف</span>
+              </p>
             </div>
 
             {/* Quick Trust badges */}
             <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                <span>۹۲+ تیپ تست کنکور</span>
+                <span className="font-medium">کارنامه رتبه‌های ۴۷ و ۱۲۴</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                <span>معلم ۲۴/۷ هوشمند</span>
+                <span className="font-medium">پیگیری مستمر تا روز کنکور</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                <span>گزارش مستقیم والدین</span>
+                <span className="font-medium">گزارش هفتگی والدین</span>
               </div>
             </div>
           </Reveal>
@@ -343,7 +352,7 @@ export function LandingPage() {
                 <div className="space-y-2">
                   <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                     <Target className="h-3.5 w-3.5 text-primary" />
-                    <span>یک گزینه را انتخاب کنید تا عملکرد تشخیصی سیستم را مشاهده کنید:</span>
+                    <span>تست زنده: اگر در کنکور به این سوال اشتباه پاسخ دهید، سیستم چطور ضعف شما را درمان می‌کند؟</span>
                   </div>
                   <div className="font-semibold text-sm leading-relaxed text-foreground">
                     <MathText text="جسمی به جرم $2\text{ kg}$ روی سطح شیب‌دار با زاویه $30^\circ$ در حال حرکت است. اگر $\mu_k = 0.2$ باشد، نیروی اصطکاک چند نیوتون است؟ ($g = 10, \cos 30^\circ \approx 0.86$)" />
